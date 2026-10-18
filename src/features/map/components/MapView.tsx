@@ -1,5 +1,5 @@
 import { App as AntdApp, Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
@@ -8,6 +8,8 @@ import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePol
 import { MapControls } from '@/features/map/components/MapControls';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
+import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
+import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM_LEVEL } from '@/features/map/constants';
 
@@ -28,6 +30,12 @@ export const MapView = () => {
   } = useCurrentCenter();
 
   const { results: airspaceZoneResults, refreshStaleZones } = useAirspaceZoneQueries();
+
+  const airspaceVisibility = useAirspaceFilterStore((state) => state.visibility);
+  const visibleZoneTypes = useMemo(
+    () => getVisibleZoneTypes(airspaceVisibility),
+    [airspaceVisibility],
+  );
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
@@ -77,7 +85,12 @@ export const MapView = () => {
         onCreate={setKakaoMapInstance}
       >
         {airspaceZoneResults.map(({ config, data }) => (
-          <AirspacePolygonLayer key={config.level} config={config} data={data} />
+          <AirspacePolygonLayer
+            key={config.level}
+            config={config}
+            data={data}
+            visibleZoneTypes={visibleZoneTypes}
+          />
         ))}
         {hasLocation && <MapMarker position={currentPosition} />}
       </KakaoMap>

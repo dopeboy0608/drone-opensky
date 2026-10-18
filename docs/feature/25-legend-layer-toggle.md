@@ -54,3 +54,9 @@ API 의존 없음 (기존 `useAirspaceZoneQueries` 그대로).
 - 구현: `AirspaceFilterPanel`(좌측 하단 "범례" 버튼 + 3그룹 12종 체크박스), `airspaceFilterStore`(zustand, typename 키, 초기값 전체 켜짐, 알 수 없는 키 무시), `MapView`에 렌더 한 줄 추가. 스토어는 TDD(테스트 4개).
 - 추가 변경: 필터 패널과 우측 하단 `AirspaceLegend` 글자 크기를 13px로 통일 (`ConfigProvider` fontSize 토큰, 범례는 `text-[13px]`). 기존 파일 수정은 `AirspaceLegend.tsx` 클래스 1줄.
 - 이월: 02에서 `AirspacePolygonLayer`에 `visibleZoneTypes` prop 추가. 로컬 3001 포트에서 Kakao SDK가 로드되지 않아 개발 서버 화면 확인은 사용자가 직접 수행함.
+
+### 02 (#43) 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `getVisibleZoneTypes`(typename→라벨 집합, TDD), `AirspacePolygonLayer`의 `visibleZoneTypes` prop(폴리곤·구역번호 라벨 필터, 숨겨진 종류의 선택 오버레이는 effect로 닫음), `MapView`에서 스토어 연결. 쿼리/캐시는 건드리지 않음.
+- 테스트: 레이어 렌더 테스트 추가(`react-kakao-maps-sdk`를 `vi.mock`). vitest globals가 꺼져 있어 RTL `cleanup`을 테스트 파일에서 직접 호출함.
+- 이월: 03에서 "전체 해제" 버튼과 모바일/빈 지도 점검. 패널과 지도 연동의 실제 화면 확인은 사용자 수행.
