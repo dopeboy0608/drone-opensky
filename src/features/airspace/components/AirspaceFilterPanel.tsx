@@ -15,8 +15,12 @@ const PANEL_FONT_SIZE = 13;
 export const AirspaceFilterPanel = () => {
   const visibility = useAirspaceFilterStore((state) => state.visibility);
   const toggleZone = useAirspaceFilterStore((state) => state.toggleZone);
+  const setAllZones = useAirspaceFilterStore((state) => state.setAllZones);
 
   const [isOpen, setIsOpen] = useState(false);
+
+  // 모두 꺼진 상태에서는 같은 버튼이 복구 역할(전체 선택)을 하도록 한다.
+  const isAnyZoneVisible = Object.values(visibility).some(Boolean);
 
   return (
     // bottom을 띄운 이유: 좌측 하단은 카카오 지도 로고가 표시되는 영역이라 겹치지 않게 하기 위함.
@@ -24,7 +28,16 @@ export const AirspaceFilterPanel = () => {
     <ConfigProvider theme={{ token: { fontSize: PANEL_FONT_SIZE } }}>
       <div className="absolute bottom-10 left-4 z-10 flex flex-col items-start gap-2">
         {isOpen && (
-          <Card size="small" title="공역 필터" className="max-h-[60dvh] overflow-y-auto shadow">
+          <Card
+            size="small"
+            title="공역 필터"
+            extra={
+              <Button type="link" size="small" onClick={() => setAllZones(!isAnyZoneVisible)}>
+                {isAnyZoneVisible ? '전체 해제' : '전체 선택'}
+              </Button>
+            }
+            className="max-h-[60dvh] overflow-y-auto shadow"
+          >
             {AIRSPACE_ZONE_CONFIGS.map((config) => (
               <div key={config.level} className="py-1">
                 <div className="flex items-center gap-2 text-[13px] font-medium">

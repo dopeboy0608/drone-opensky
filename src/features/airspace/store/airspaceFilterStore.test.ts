@@ -41,4 +41,22 @@ describe('airspaceFilterStore', () => {
 
     expect(useAirspaceFilterStore.getState().visibility).not.toHaveProperty('unknown');
   });
+
+  it('setAllZones(false)는 모든 typename을 끄고 키 집합은 유지한다', () => {
+    useAirspaceFilterStore.getState().toggleZone('lt_c_aisctrc');
+
+    useAirspaceFilterStore.getState().setAllZones(false);
+
+    const { visibility } = useAirspaceFilterStore.getState();
+    expect(Object.keys(visibility).sort()).toEqual(Object.keys(TYPENAME_ZONE_LABELS).sort());
+    expect(Object.values(visibility).every((isVisible) => !isVisible)).toBe(true);
+  });
+
+  it('setAllZones(true)는 모든 typename을 켠다', () => {
+    useAirspaceFilterStore.getState().setAllZones(false);
+
+    useAirspaceFilterStore.getState().setAllZones(true);
+
+    expect(Object.values(useAirspaceFilterStore.getState().visibility).every(Boolean)).toBe(true);
+  });
 });

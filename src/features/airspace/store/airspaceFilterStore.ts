@@ -5,6 +5,7 @@ import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 interface AirspaceFilterState {
   visibility: Record<string, boolean>;
   toggleZone: (typename: string) => void;
+  setAllZones: (isVisible: boolean) => void;
 }
 
 export const createInitialVisibility = (): Record<string, boolean> =>
@@ -21,4 +22,10 @@ export const useAirspaceFilterStore = create<AirspaceFilterState>((set) => ({
       }
       return { visibility: { ...state.visibility, [typename]: !state.visibility[typename] } };
     }),
+  setAllZones: (isVisible) =>
+    set((state) => ({
+      visibility: Object.fromEntries(
+        Object.keys(state.visibility).map((typename) => [typename, isVisible]),
+      ),
+    })),
 }));
