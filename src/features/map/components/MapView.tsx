@@ -2,6 +2,7 @@ import { App as AntdApp, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
+import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
 import { MapControls } from '@/features/map/components/MapControls';
@@ -81,6 +82,7 @@ export const MapView = () => {
         {hasLocation && <MapMarker position={currentPosition} />}
       </KakaoMap>
       <AirspaceLegend />
+      <AirspaceFilterPanel />
       <MapControls
         onRefreshPolygons={refreshStaleZones}
         onMoveToCurrentLocation={() =>
