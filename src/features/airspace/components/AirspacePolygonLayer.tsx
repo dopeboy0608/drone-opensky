@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { CustomOverlayMap, Polygon } from 'react-kakao-maps-sdk';
 
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
@@ -13,6 +13,8 @@ import type {
 interface AirspacePolygonLayerProps {
   config: AirspaceZoneConfig;
   data: VWorldFeatureCollection | undefined;
+  /** 표시할 구역 종류(feature.zoneType) 집합. 지정하지 않으면 전부 표시한다. */
+  visibleZoneTypes?: ReadonlySet<string>;
 }
 
 interface SelectedZone {
@@ -37,8 +39,21 @@ const getZoneNumberLabel = (
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 };
 
-export const AirspacePolygonLayer = ({ config, data }: AirspacePolygonLayerProps) => {
+export const AirspacePolygonLayer = ({
+  config,
+  data,
+  visibleZoneTypes,
+}: AirspacePolygonLayerProps) => {
   const [selectedZone, setSelectedZone] = useState<SelectedZone | null>(null);
+
+  const selectedZoneType = selectedZone?.zoneType;
+
+  // 숨겨진 종류의 오버레이가 남아 있다가 다시 켤 때 저절로 되살아나지 않도록 상태를 비운다.
+  useEffect(() => {
+    if (selectedZoneType && visibleZoneTypes && !visibleZoneTypes.has(selectedZoneType)) {
+      setSelectedZone(null);
+    }
+  }, [selectedZoneType, visibleZoneTypes]);
 
   if (!data) {
     return null;
@@ -47,6 +62,10 @@ export const AirspacePolygonLayer = ({ config, data }: AirspacePolygonLayerProps
   return (
     <>
       {data.features.flatMap((feature, featureIndex) => {
+        if (visibleZoneTypes && !visibleZoneTypes.has(feature.zoneType ?? '')) {
+          return [];
+        }
+
         const zoneNumberLabel = getZoneNumberLabel(config.level, feature.properties);
 
         return multiPolygonToKakaoPaths(feature.geometry.coordinates).map((rings, polygonIndex) => (
