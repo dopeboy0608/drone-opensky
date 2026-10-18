@@ -3,14 +3,14 @@
 ## 완료된 작업 (코드/설정)
 
 1. **`rsbuild.config.ts`**
-   - `GH_PAGES_BASE_PATH` 환경변수로 서브경로(`/Drone-OpenSky/`) 배포 대응
+   - `GH_PAGES_BASE_PATH` 환경변수로 서브경로(`/drone-opensky/`) 배포 대응
      - `output.assetPrefix`: 정적 에셋 URL 접두사
      - `server.base`: 서버 base path
    - 클라이언트 코드에서 쓸 수 있도록 `import.meta.env.VITE_BASE_PATH`로 define 주입
 
 2. **`src/routes/router.tsx`**
    - TanStack Router에 `basepath: import.meta.env.VITE_BASE_PATH` 추가
-   - 서브경로 배포 시에도 라우팅이 `/Drone-OpenSky/map` 기준으로 동작
+   - 서브경로 배포 시에도 라우팅이 `/drone-opensky/map` 기준으로 동작
 
 3. **`src/env.d.ts`**
    - `VITE_BASE_PATH` 타입 선언 추가
@@ -23,9 +23,9 @@
 
 - 로컬 Node를 `nvm use 24` (v24.21.0)로 전환 후 아래 명령으로 빌드 확인 완료:
   ```bash
-  GH_PAGES_BASE_PATH=/Drone-OpenSky/ pnpm build
+  GH_PAGES_BASE_PATH=/drone-opensky/ pnpm build
   ```
-- 빌드 성공, `dist/index.html`의 모든 asset 경로가 `/Drone-OpenSky/...`로 정상 생성됨을 확인.
+- 빌드 성공, `dist/index.html`의 모든 asset 경로가 `/drone-opensky/...`로 정상 생성됨을 확인.
 
 ## 사용자가 직접 해야 할 일 (GitHub 웹 설정)
 
@@ -36,7 +36,7 @@
 3. **Kakao Developers 콘솔**에서 사용 중인 JS 키의 플랫폼 도메인에 `https://dopeboy0608.github.io` 등록
    - 등록하지 않으면 배포된 페이지에서 카카오맵이 로드되지 않음
 4. 위 설정 후 `master`에 push하면 Actions 탭에서 배포 진행 상황 확인 가능. 완료되면
-   `https://dopeboy0608.github.io/Drone-OpenSky/` 에서 접속 확인
+   `https://dopeboy0608.github.io/drone-opensky/` 에서 접속 확인
 
 ## 참고
 

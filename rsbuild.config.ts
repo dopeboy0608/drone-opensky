@@ -7,7 +7,7 @@ import pkg from './package.json';
 
 const { publicVars } = loadEnv({ prefixes: ['VITE_'] });
 
-// GitHub Pages 프로젝트 페이지 서브경로 배포 대응 (예: /Drone-OpenSky/). 로컬/기본 배포는 '/'.
+// GitHub Pages 프로젝트 페이지 서브경로 배포 대응 (예: /drone-opensky/). 로컬/기본 배포는 '/'.
 const basePath = process.env.GH_PAGES_BASE_PATH || '/';
 
 // 배포된 페이지 콘솔에서 버전/최근 작업을 확인할 수 있도록 빌드 시점에 주입한다
@@ -22,7 +22,7 @@ const lastCommitMessage = (() => {
 })();
 
 // 커스텀 도메인 연결 전까지 GitHub Pages 기본 URL을 canonical/OG URL로 사용.
-const siteUrl = 'https://dopeboy0608.github.io/Drone-OpenSky/';
+const siteUrl = 'https://dopeboy0608.github.io/drone-opensky/';
 
 const siteTitle = 'Drone-OpenSky';
 const siteDescription = '드론 비행 가능/제한/불가 구역을 실시간 지도 기반으로 제공하는 서비스';
