@@ -20,7 +20,8 @@ const makeCandidate = (label: string): SearchCandidate => ({
 });
 
 const renderUseAddressSearch = (initialInput: string) => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // retry 기본값을 그대로 둔다: 훅이 스스로 재시도를 끄는지(실패 안내가 늦어지지 않는지) 검증하기 위해서다.
+  const queryClient = new QueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -179,5 +180,81 @@ describe('useAddressSearch', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.candidates).toEqual([]);
+  });
+
+  describe('isEmpty', () => {
+    it('debounce가 끝난 뒤 결과가 0건이면 true다', async () => {
+      mockedSearch.mockResolvedValue([]);
+      const { result, rerender } = renderUseAddressSearch('');
+
+      rerender({ input: '없는곳' });
+      await advanceDebounce();
+
+      await waitFor(() => expect(result.current.isEmpty).toBe(true));
+    });
+
+    it('결과가 있으면 false다', async () => {
+      const { result, rerender } = renderUseAddressSearch('');
+
+      rerender({ input: '세종' });
+      await advanceDebounce();
+
+      await waitFor(() => expect(result.current.candidates).toHaveLength(1));
+      expect(result.current.isEmpty).toBe(false);
+    });
+
+    it('빈 입력이면 false다', async () => {
+      const { result } = renderUseAddressSearch('');
+
+      await advanceDebounce();
+
+      expect(result.current.isEmpty).toBe(false);
+    });
+
+    it('debounce를 기다리는 동안에는 이전 검색어가 0건이었어도 false다', async () => {
+      mockedSearch.mockResolvedValue([]);
+      const { result, rerender } = renderUseAddressSearch('');
+      rerender({ input: '없는곳' });
+      await advanceDebounce();
+      await waitFor(() => expect(result.current.isEmpty).toBe(true));
+
+      rerender({ input: '없는곳2' });
+
+      expect(result.current.isEmpty).toBe(false);
+    });
+
+    it('새 검색어의 응답을 기다리는 동안에는 이전 0건 결과로 true가 되지 않는다', async () => {
+      let resolveNext: (value: SearchCandidate[]) => void = () => {};
+      mockedSearch.mockImplementation((keyword) =>
+        keyword === '없는곳'
+          ? Promise.resolve([])
+          : new Promise<SearchCandidate[]>((resolve) => {
+              resolveNext = resolve;
+            }),
+      );
+      const { result, rerender } = renderUseAddressSearch('');
+      rerender({ input: '없는곳' });
+      await advanceDebounce();
+      await waitFor(() => expect(result.current.isEmpty).toBe(true));
+
+      rerender({ input: '세종' });
+      await advanceDebounce();
+      await waitFor(() => expect(result.current.isLoading).toBe(true));
+
+      expect(result.current.isEmpty).toBe(false);
+
+      await act(async () => resolveNext([makeCandidate('세종')]));
+    });
+
+    it('검색이 실패하면 false다', async () => {
+      mockedSearch.mockRejectedValue(new Error('검색 실패'));
+      const { result, rerender } = renderUseAddressSearch('');
+
+      rerender({ input: '세종' });
+      await advanceDebounce();
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.isEmpty).toBe(false);
+    });
   });
 });

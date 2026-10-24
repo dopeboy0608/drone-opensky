@@ -1,3 +1,4 @@
+import { App as AntdApp } from 'antd';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,7 +26,12 @@ const sameNameElsewhere: SearchCandidate = {
 };
 
 const mockCandidates = (candidates: SearchCandidate[]) => {
-  mockedUseAddressSearch.mockReturnValue({ candidates, isLoading: false, isError: false });
+  mockedUseAddressSearch.mockReturnValue({
+    candidates,
+    isLoading: false,
+    isError: false,
+    isEmpty: false,
+  });
 };
 
 const typeKeyword = (value: string) => {
@@ -113,5 +119,64 @@ describe('AddressSearch', () => {
     typeKeyword('부산');
 
     expect(mockedUseAddressSearch).toHaveBeenLastCalledWith('부산');
+  });
+
+  describe('안내', () => {
+    const errorToast = vi.fn();
+
+    beforeEach(() => {
+      errorToast.mockReset();
+      // 토스트는 antd message.error 호출 여부로 검증한다(토스트 DOM은 테스트 간에 남아 개수를 셀 수 없다).
+      vi.spyOn(AntdApp, 'useApp').mockReturnValue({
+        message: { error: errorToast },
+      } as unknown as ReturnType<typeof AntdApp.useApp>);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('결과가 없으면 "검색 결과가 없습니다."를 보여준다', () => {
+      mockedUseAddressSearch.mockReturnValue({
+        candidates: [],
+        isLoading: false,
+        isError: false,
+        isEmpty: true,
+      });
+      render(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      typeKeyword('없는곳');
+
+      expect(screen.getByText('검색 결과가 없습니다.')).toBeInTheDocument();
+    });
+
+    it('결과 없음이 아니면 안내를 보여주지 않는다', () => {
+      render(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      typeKeyword('세종');
+
+      expect(screen.queryByText('검색 결과가 없습니다.')).not.toBeInTheDocument();
+    });
+
+    it('검색이 실패하면 에러 토스트를 한 번 보여준다', () => {
+      mockedUseAddressSearch.mockReturnValue({
+        candidates: [],
+        isLoading: false,
+        isError: true,
+        isEmpty: false,
+      });
+      const { rerender } = render(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      rerender(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      expect(errorToast).toHaveBeenCalledTimes(1);
+      expect(errorToast).toHaveBeenCalledWith('주소 검색에 실패했습니다.');
+    });
+
+    it('실패가 없으면 토스트를 보여주지 않는다', () => {
+      render(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      expect(errorToast).not.toHaveBeenCalled();
+    });
   });
 });
