@@ -66,6 +66,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.1.1
         version: 6.1.1(vite@8.3.0(@types/node@24.13.4)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+      fake-indexeddb:
+        specifier: ^6.2.6
+        version: 6.2.6
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -1785,6 +1788,10 @@ packages:
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
+
+  fake-indexeddb@6.2.6:
+    resolution: {integrity: sha512-ihhmr0KoET51jT8R4YhbUYuLLvr1qqO6INISygtN16i8loR8kAxtAUr4+EKHTSMjL+lggaAn4OC7DRqzrNgnuQ==}
+    engines: {node: '>=18'}
 
   fast-string-truncated-width@3.0.3:
     resolution: {integrity: sha512-0jjjIEL6+0jag3l2XWWizO64/aZVtpiGE3t0Zgqxv0DPuxiMjvB3M24fCyhZUO4KomJQPj3LTSUnDP3GpdwC0g==}
@@ -4035,6 +4042,8 @@ snapshots:
       '@types/estree': 1.0.9
 
   expect-type@1.4.0: {}
+
+  fake-indexeddb@6.2.6: {}
 
   fast-string-truncated-width@3.0.3: {}
 

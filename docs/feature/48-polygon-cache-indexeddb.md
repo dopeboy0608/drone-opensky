@@ -57,3 +57,11 @@ JSON 합계 ~14.6MB (금지 0.17 / 제한 14.3 / 가능 0.09MB, 국립자연공�
 ## 진행 로그
 
 - 2026-10-24: Phase A 본문 반영, Phase B 코드 대조·용량 실측, 서브이슈 #53~#57 생성. 구현 시작 전.
+
+### 01 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `src/features/airspace/cache/airspaceCacheStore.ts` — `readZoneCache(level)` / `writeZoneCache(level, data, savedAt?)`. DB `drone-opensky-airspace`, 스토어 `zoneGroups`, 키 `airspaceZones:<level>`, 값 `{ version, savedAt, data }`. `version` 불일치·손상 값은 `null` 반환 후 삭제, 모든 저장소 실패는 `console.warn` 후 "캐시 없음"으로 처리. 만료 판단은 하지 않는다(#54에서 `savedAt`을 `updatedAt`으로 주입).
+- 판단: DB 연결은 모듈 수준 캐싱 없이 호출마다 열고 닫는다(호출이 앱 시작·그룹 조회 성공 시 그룹당 1회뿐이고, 닫히지 않은 연결이 버전 업그레이드를 막는 문제를 피함).
+- 스펙: `docs/spec/48-airspace-idb-cache.md`. 테스트 먼저 작성(TDD) 후 구현.
+- 테스트: `fake-indexeddb` devDependency 추가, `src/test/setup.ts`에 `import 'fake-indexeddb/auto'` 한 줄. 캐시 저장소 테스트 14개 추가, 전체 47개 통과, `tsc`/lint 통과.
+- 이월: #54에서 `readZoneCache`를 호출해 `setQueryData(..., { updatedAt: savedAt })`로 주입. 쿼리 키 생성을 훅과 공유하도록 한곳으로 모을 것. 임시 `.claude/launch.json`은 미추적 상태(커밋 제외).
