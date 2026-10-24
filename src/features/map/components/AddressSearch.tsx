@@ -19,9 +19,12 @@ export const AddressSearch = ({ onSelectCandidate }: AddressSearchProps) => {
   // 그 label로 다시 검색하면 불필요한 호출이 한 번 더 나가므로 검색어는 직접 타이핑할 때만 바꾼다.
   const [inputValue, setInputValue] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
   const { candidates, isError, errorUpdatedAt, isEmpty } = useAddressSearch(searchKeyword);
   // 이미 안내한 에러(발생 시각 기준). 이전 검색어로 돌아와 캐시된 에러가 다시 보여도 토스트를 반복하지 않는다.
   const toastedErrorsRef = useRef(new Set<number>());
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const options = useMemo(
     () =>
@@ -66,9 +69,28 @@ export const AddressSearch = ({ onSelectCandidate }: AddressSearchProps) => {
     }
   }, [isError, errorUpdatedAt, message]);
 
+  // antd는 mousedown으로 바깥 클릭을 감지하는데, 지도 위 폴리곤 같은 요소는 mousedown 전파를 막고
+  // 모바일 터치는 마우스 이벤트 없이 포인터 이벤트만 발생해 목록이 그대로 남는다. 그래서 캡처 단계의
+  // pointerdown(전파를 막아도 먼저 받는다)으로 검색 영역 밖을 누르면 직접 닫는다.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnOutsidePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsidePointerDown, true);
+
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointerDown, true);
+  }, [isOpen]);
+
   return (
     // 우측 상단에는 컨트롤 버튼(MapControls)이 있어 right-20으로 자리를 비워 둔다.
-    <div className="absolute top-4 right-20 left-4 z-10 max-w-md">
+    <div ref={containerRef} className="absolute top-4 right-20 left-4 z-10 max-w-md">
       <AutoComplete
         className="w-full"
         size="large"
@@ -81,6 +103,10 @@ export const AddressSearch = ({ onSelectCandidate }: AddressSearchProps) => {
         aria-label="주소 검색"
         // 결과가 없을 때만 안내를 보여준다. null이면 후보가 없는 동안 드롭다운 자체가 열리지 않는다.
         notFoundContent={isEmpty ? NO_RESULT_MESSAGE : null}
+        // 후보 목록을 검색 영역 안에 렌더해야 후보를 누르는 것이 "바깥"으로 판정되지 않는다.
+        getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
+        open={isOpen}
+        onOpenChange={setIsOpen}
         value={inputValue}
         options={options}
         onSearch={setSearchKeyword}

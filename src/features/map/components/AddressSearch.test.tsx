@@ -207,4 +207,68 @@ describe('AddressSearch', () => {
       expect(errorToast).not.toHaveBeenCalled();
     });
   });
+
+  describe('외부 터치·클릭 시 닫기', () => {
+    const openList = () => {
+      mockCandidates([cityHall]);
+      const view = render(<AddressSearch onSelectCandidate={vi.fn()} />);
+      const input = typeKeyword('시청');
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+      return { ...view, input };
+    };
+
+    // 카카오 지도(SVG 폴리곤 등)는 마우스 이벤트를 막아 antd의 바깥 클릭 감지가 동작하지 않고,
+    // 모바일 터치는 마우스 이벤트 없이 포인터 이벤트만 발생하므로 pointerdown으로 검증한다.
+    // 드롭다운의 열림 여부는 jsdom에서 가시성 계산이 불안정해 combobox의 aria-expanded로 판단한다.
+    const isListHidden = () =>
+      screen.getByRole('combobox', { name: '주소 검색' }).getAttribute('aria-expanded') !== 'true';
+
+    it('검색 영역 바깥에서 포인터를 누르면 후보 목록이 닫힌다', () => {
+      const outside = document.createElement('div');
+      document.body.appendChild(outside);
+      openList();
+
+      fireEvent.pointerDown(outside);
+
+      expect(isListHidden()).toBe(true);
+      outside.remove();
+    });
+
+    it('이벤트 전파를 막는 요소를 눌러도 닫힌다', () => {
+      const blocker = document.createElement('div');
+      blocker.addEventListener('pointerdown', (event) => event.stopPropagation());
+      document.body.appendChild(blocker);
+      openList();
+
+      fireEvent.pointerDown(blocker);
+
+      expect(isListHidden()).toBe(true);
+      blocker.remove();
+    });
+
+    it('후보를 누르는 것은 바깥으로 보지 않아, 선택이 정상 동작한다', () => {
+      mockCandidates([cityHall]);
+      const onSelectCandidate = vi.fn();
+      render(<AddressSearch onSelectCandidate={onSelectCandidate} />);
+      typeKeyword('시청');
+
+      const option = screen.getByText('서울 중구 세종대로 110');
+      fireEvent.pointerDown(option);
+      fireEvent.click(option);
+
+      expect(onSelectCandidate).toHaveBeenCalledWith(cityHall);
+    });
+
+    it('닫힌 뒤 다시 입력하면 목록이 다시 열린다', () => {
+      const outside = document.createElement('div');
+      document.body.appendChild(outside);
+      openList();
+      fireEvent.pointerDown(outside);
+
+      typeKeyword('시청2');
+
+      expect(isListHidden()).toBe(false);
+      outside.remove();
+    });
+  });
 });
