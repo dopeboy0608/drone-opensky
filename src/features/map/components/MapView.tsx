@@ -7,6 +7,7 @@ import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
 import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
+import { AddressSearch } from '@/features/map/components/AddressSearch';
 import { MapControls } from '@/features/map/components/MapControls';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
@@ -79,7 +80,8 @@ export const MapView = () => {
   return (
     <div className="relative h-full w-full">
       {isAnyZoneLoading && (
-        <div className="absolute top-4 left-1/2 z-10 -translate-x-1/2">
+        // top-16: 상단(top-4)에는 주소 검색 바가 있어 그 아래로 내린다.
+        <div className="absolute top-16 left-1/2 z-10 -translate-x-1/2">
           <Spin />
         </div>
       )}
@@ -107,6 +109,11 @@ export const MapView = () => {
         )}
         {hasLocation && <MapMarker position={currentPosition} />}
       </KakaoMap>
+      <AddressSearch
+        onSelectCandidate={({ lat, lng }) =>
+          kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng))
+        }
+      />
       <AirspaceLegend />
       <AirspaceFilterPanel />
       <MapControls

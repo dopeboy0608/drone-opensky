@@ -72,3 +72,12 @@ API 계약 의존 없음(카카오 JS SDK `services`, 공식 API). 상위 스토
 - 판단: 오래된 응답 무시는 별도 로직 없이 쿼리 키(검색어)로 해결 — 늦게 온 응답은 다른 캐시 항목에 쌓인다. `retry`는 훅에서 건드리지 않고 기본값을 쓴다(실패 시 UX는 04에서 점검).
 - 테스트: 훅 테스트 11개 추가(debounce 전 미호출, 후 호출, 연속 입력은 마지막 값만, trim, 빈 입력, 입력 삭제 즉시 비움, 캐시, 늦은 응답 무시, `isLoading`, `isError`). 전체 86개 통과, `tsc`/lint 통과. 반복 실행에서 "debounce 전 미호출" 경계 테스트가 간헐 실패(`shouldAdvanceTime`이 실제 경과 시간을 더해 299ms 경계를 넘김)해 그 테스트만 시간을 고정한 가짜 타이머로 바꿨고, 훅 테스트 25회 반복에서 실패 0회.
 - 이월: 03에서 이 훅을 antd `AutoComplete`에 연결하고 `panTo`를 붙인다. 훅은 모킹 테스트로만 검증했고 실제 SDK 연동은 03 화면에서 확인한다.
+
+### 03 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `AddressSearch`(antd `AutoComplete`, `size="large"`, `allowClear`, `filterOption={false}`, `virtual={false}`)가 `useAddressSearch`의 후보를 label+subLabel 옵션으로 보여주고, 선택 시 `onSelectCandidate`를 호출. `MapView`는 `kakaoMapInstance.panTo()`만 수행(줌·마커 변경 없음), 로딩 스피너는 `top-16`으로 내림. 이슈 #62 본문 보강.
+- 판단: 입력창 표시값(`inputValue`)과 검색어(`searchKeyword`)를 분리 — 후보 선택 시 입력창이 label로 바뀌어도 그 label로 재검색하지 않는다. 옵션 value는 같은 이름 장소 충돌을 피해 id로 두고 `onChange`에서 label로 바꿔 보여준다. `filterOption={false}`가 없으면 antd가 id와 입력값을 비교해 후보를 모두 숨긴다.
+- 테스트: 컴포넌트 테스트 6개 추가(플레이스홀더·combobox, 입력 전달, label/subLabel 표시, 선택 시 label 표시와 콜백 1회, 같은 label 후보 구분, 선택 후 재입력). jsdom에 `ResizeObserver`가 없어 테스트 파일 안에서 스텁 처리, RTL 자동 cleanup이 꺼져 있어 직접 정리. 전체 92개 통과, `tsc`/lint 통과.
+- 브라우저 확인(dev 3000번, Chrome): 데스크톱 — "봉화산로56길" 입력 시 후보 10개 표시(주소 "서울 중랑구 봉화산로56길"이 맨 앞, 이어서 장소와 도로명 주소), 첫 후보 선택 시 입력창에 label 표시, 지도가 중랑구로 이동하고 줌 레벨 유지, 콘솔 오류 없음. 모바일 375px — 검색 바 [16, 16, 295, 56]과 컨트롤 버튼 [327, 16, 359, 48]이 겹치지 않음.
+- 미확인: 로딩 스피너와 검색 바가 동시에 표시되는 순간의 겹침, 실제 모바일 기기의 키보드·터치 동작(05에서 확인).
+- 이월: 04에서 결과 없음 안내와 검색 실패 토스트.
