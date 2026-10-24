@@ -177,3 +177,10 @@
 - 원인: 이 엔드포인트는 JSON(200)을 돌려주지만 응답에 `Access-Control-Allow-Origin` 헤더가 없어(curl로 확인) 브라우저에서 직접 호출하면 CORS로 막힌다. 공식 문서에 없는 카카오맵 웹 내부용으로 보여 프록시를 두더라도 약관·안정성 위험이 있다.
 - 해결/결론: 이미 쓰는 `react-kakao-maps-sdk`의 `useKakaoLoader`에 `libraries: ['services']`를 추가해 `Places.keywordSearch`/`Geocoder.addressSearch`를 쓴다(공식, CORS·프록시 불필요). debounce(300ms)로 호출을 줄이고 `useDeferredValue`로 목록 렌더링 우선순위를 낮춘다.
 - 관련 이슈/PR: #26
+
+## 2026-10-24 11:52 — #26 후보 목록이 바깥 터치·클릭 뒤에도 남는 문제
+
+- 증상: 모바일에서 주소 검색 후보 목록이 열린 상태로 지도의 폴리곤을 누르면 공역 오버레이는 뜨지만 후보 목록이 닫히지 않았다.
+- 원인: antd(rc-select)는 window의 `mousedown`으로 바깥 클릭을 감지해 닫는다. 지도 위 폴리곤 같은 요소는 mousedown 전파를 막고, 모바일 터치는 마우스 이벤트 없이 포인터/터치 이벤트만 발생해 antd가 바깥 누름을 못 받는다. 데스크톱에서 일반 지도 영역을 눌렀을 때는 닫혔고, 마우스 이벤트 없이 `pointerdown`만 보냈을 때 목록이 그대로 남는 것으로 재현했다.
+- 해결/결론: `AddressSearch`가 열림 상태를 직접 제어(`open`/`onOpenChange`)하고, 열려 있는 동안 `document`의 `pointerdown`을 캡처 단계에서 듣다가 검색 영역 밖이면 닫는다(캡처 단계라 하위 요소가 전파를 막아도 먼저 받는다). 후보를 누르는 동작이 "바깥"으로 판정되지 않도록 드롭다운은 `getPopupContainer`로 검색 영역 안에 렌더한다. 다시 입력하면 목록이 다시 열린다.
+- 관련 이슈/PR: #26
