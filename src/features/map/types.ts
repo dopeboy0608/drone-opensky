@@ -5,3 +5,8 @@ export interface SearchCandidate {
   lat: number;
   lng: number;
 }
+
+export interface MapPosition {
+  lat: number;
+  lng: number;
+}

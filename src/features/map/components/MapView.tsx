@@ -10,6 +10,7 @@ import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
 import { AddressSearch } from '@/features/map/components/AddressSearch';
 import { MapControls } from '@/features/map/components/MapControls';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
+import { useMapMarker } from '@/features/map/hooks/useMapMarker';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { useAirspaceFilterStore } from '@/features/airspace/store/airspaceFilterStore';
 import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
@@ -33,6 +34,11 @@ export const MapView = () => {
     hasResolvedInitial,
     refetchLocation,
   } = useCurrentCenter();
+
+  const { markerPosition, showSearchMarker, showCurrentMarker } = useMapMarker(
+    currentPosition,
+    hasLocation,
+  );
 
   const { results: airspaceZoneResults, refreshStaleZones } = useAirspaceZoneQueries();
 
@@ -107,12 +113,13 @@ export const MapView = () => {
             onClose={clearZone}
           />
         )}
-        {hasLocation && <MapMarker position={currentPosition} />}
+        {markerPosition && <MapMarker position={markerPosition} />}
       </KakaoMap>
       <AddressSearch
-        onSelectCandidate={({ lat, lng }) =>
-          kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng))
-        }
+        onSelectCandidate={({ lat, lng }) => {
+          kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng));
+          showSearchMarker({ lat, lng });
+        }}
       />
       <AirspaceLegend />
       <AirspaceFilterPanel />
@@ -120,8 +127,11 @@ export const MapView = () => {
         onRefreshPolygons={refreshStaleZones}
         onMoveToCurrentLocation={() =>
           refetchLocation({
-            onSuccess: (position) =>
-              kakaoMapInstance?.panTo(new kakao.maps.LatLng(position.lat, position.lng)),
+            onSuccess: (position) => {
+              kakaoMapInstance?.panTo(new kakao.maps.LatLng(position.lat, position.lng));
+              showCurrentMarker();
+            },
+            // 실패하면 마커 상태를 바꾸지 않는다. 검색 마커가 떠 있다면 위치를 못 구했다는 이유로 지울 필요가 없다.
             onError: () => message.error('현재 위치를 가져오지 못했습니다.'),
           })
         }
