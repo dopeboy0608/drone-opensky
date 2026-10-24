@@ -21,6 +21,8 @@ export const MapView = () => {
   // 카카오 SDK 스크립트 로딩 상태. 로딩/에러 시 지도 대신 안내 문구를 렌더링한다.
   const [loading, error] = useKakaoLoader({
     appkey: import.meta.env.VITE_KAKAO_MAP_API_KEY,
+    // 주소·장소 검색(Places, Geocoder)은 services 라이브러리를 로드해야 쓸 수 있다.
+    libraries: ['services'],
   });
   // 현재위치 재조회는 마커 위치만 갱신하고 지도는 움직이지 않아야 하므로,
   // 지도 이동 여부는 아래 mapCenter state로 별도 관리한다.

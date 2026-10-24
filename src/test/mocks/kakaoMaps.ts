@@ -27,9 +27,55 @@ class MockLatLng {
   }
 }
 
+type ServicesStatus = 'OK' | 'ZERO_RESULT' | 'ERROR';
+
+interface ServicesResponse {
+  status: ServicesStatus;
+  result: unknown[];
+}
+
+// services 검색은 콜백 기반이라 테스트가 검색어별 응답을 직접 지정할 수 있게 한다.
+// 필요한 만큼만 흉내낸다(Places.keywordSearch, Geocoder.addressSearch, Status).
+export const kakaoServicesMock = {
+  placesResponse: { status: 'ZERO_RESULT', result: [] } as ServicesResponse,
+  addressResponse: { status: 'ZERO_RESULT', result: [] } as ServicesResponse,
+  keywordSearchCalls: [] as string[],
+  addressSearchCalls: [] as string[],
+  reset() {
+    this.placesResponse = { status: 'ZERO_RESULT', result: [] };
+    this.addressResponse = { status: 'ZERO_RESULT', result: [] };
+    this.keywordSearchCalls = [];
+    this.addressSearchCalls = [];
+  },
+};
+
+class MockPlaces {
+  keywordSearch(
+    keyword: string,
+    callback: (result: unknown[], status: ServicesStatus, pagination: unknown) => void,
+  ) {
+    kakaoServicesMock.keywordSearchCalls.push(keyword);
+    const { result, status } = kakaoServicesMock.placesResponse;
+    callback(result, status, {});
+  }
+}
+
+class MockGeocoder {
+  addressSearch(keyword: string, callback: (result: unknown[], status: ServicesStatus) => void) {
+    kakaoServicesMock.addressSearchCalls.push(keyword);
+    const { result, status } = kakaoServicesMock.addressResponse;
+    callback(result, status);
+  }
+}
+
 const mockKakao = {
   maps: {
     LatLng: MockLatLng,
+    services: {
+      Places: MockPlaces,
+      Geocoder: MockGeocoder,
+      Status: { OK: 'OK', ZERO_RESULT: 'ZERO_RESULT', ERROR: 'ERROR' },
+    },
   },
 };
 
@@ -38,5 +84,6 @@ export const installKakaoMapsMock = () => {
 };
 
 export const uninstallKakaoMapsMock = () => {
+  kakaoServicesMock.reset();
   delete (globalThis as unknown as Record<string, unknown>).kakao;
 };

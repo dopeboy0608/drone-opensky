@@ -5,3 +5,6 @@ export const DEFAULT_ZOOM_LEVEL = 7;
 
 // 위치 조회 실패/미허용 시 폴백 좌표 (서울시청).
 export const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
+
+// 서제스트 목록이 길어지면 모바일에서 화면을 가리고 선택하기 어려워 상한을 둔다.
+export const MAX_SEARCH_CANDIDATES = 10;
