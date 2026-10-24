@@ -2,6 +2,10 @@
 
 드론 비행 가능/제한/불가 구역을 실시간 지도 기반으로 제공하는 서비스
 
+## 배포 주소
+
+https://dopeboy0608.github.io/drone-opensky/
+
 ## 실행 방법
 
 ```bash
