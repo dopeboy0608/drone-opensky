@@ -74,9 +74,7 @@ export const AirspacePolygonLayer = memo(
     return (
       <>
         {polygonItems.map((item) => {
-          if (visibleZoneTypes && !visibleZoneTypes.has(item.zoneType ?? '')) {
-            return null;
-          }
+          const isVisible = !visibleZoneTypes || visibleZoneTypes.has(item.zoneType ?? '');
 
           return (
             <AirspacePolygon
@@ -84,6 +82,7 @@ export const AirspacePolygonLayer = memo(
               config={config}
               path={item.path}
               zoneType={item.zoneType}
+              isVisible={isVisible}
               labelPosition={item.labelPosition}
               zoneNumberLabel={item.zoneNumberLabel}
               onSelectZone={onSelectZone}

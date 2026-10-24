@@ -88,3 +88,11 @@ API 의존 없음. 02·03의 "눈에 띄는 지연 없음"은 01의 측정 수�
 - 테스트: 레이어 테스트에 onSelectZone 호출, 리렌더 시 Polygon 미재렌더(path 참조 동일) 검증 추가, `useSelectedZone` 훅 테스트 추가(오버레이 숨김 시 닫기는 훅 테스트로 이동). `pnpm test` 32개 통과, `tsc` 통과.
 - 재측정: 토글 ~~600ms → 35~~65ms, 오버레이 열기·닫기 `setPath` 0회 (TROUBLE_SHOOTING.md 참고). 전체 선택은 ~630ms로 남음.
 - 이월: 03에서 ON 시 폴리곤 재생성 비용(전체 선택 ~630ms)과 라벨 오버레이 최적화. 임시 계측(`perfProbe.tsx`)은 코드에서 제거했고 스크래치패드에 보관(03 재측정 때 MapView에 PerfProfiler로 다시 감싸 사용). `.claude/launch.json`은 미추적 임시 파일.
+
+### 03 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `AirspacePolygon`에 `isVisible` prop 추가 — `Polygon` ref로 `setMap(isVisible ? map : null)` (`useLayoutEffect`), 언마운트 없음. 라벨은 보일 때만 렌더. 레이어는 필터링 대신 `isVisible`만 계산해 넘긴다.
+- 범위 판단: 측정상 모든 동작이 ~100ms 이하라 `useDeferredValue`/`startTransition`, 라벨 줌 조건부 표시는 보류(필요 시 별도 이슈).
+- 테스트: 레이어 테스트를 `setMap` 호출 이력 기준으로 수정(숨김 시 `null`, 다시 켜도 인스턴스 재생성 없음, 바뀐 폴리곤만 리렌더). 33개 통과, `tsc`/lint 통과. 화면에서 오버레이가 숨김 시 닫히고 재표시 시 다시 열리지 않음 확인.
+- 재측정: 전체 선택 ~1.5s → ~85ms, `setPath` 0회 (TROUBLE_SHOOTING.md).
+- 남은 일: #47 완료 조건 확인 후 이슈 체크리스트 갱신/닫기(사용자 확인), 임시 `.claude/launch.json` 삭제.
