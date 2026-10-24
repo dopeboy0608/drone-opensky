@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, screen, waitFor } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { IDBFactory } from 'fake-indexeddb';
 import { http, HttpResponse } from 'msw';
@@ -148,6 +148,28 @@ describe('useAirspaceZoneQueries + IndexedDB 캐시', () => {
       expect(result.current.results.some((zone) => zone.isError)).toBe(false);
 
       vi.unstubAllGlobals();
+    });
+  });
+
+  describe('만료 캐시 재조회 실패', () => {
+    it('에러 토스트를 한 번 보여주고, 저장된 데이터는 계속 쓴다', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      server.use(http.get(WFS_URL, () => HttpResponse.json({}, { status: 500 })));
+      await writeZoneCache('prohibited', makeFeatureCollection(), Date.now() - 25 * HOUR_MS);
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      await hydrateAirspaceCache(queryClient);
+
+      const { result, rerender } = renderQueries(queryClient);
+
+      await screen.findAllByText('비행 금지 구역 정보를 불러오지 못했습니다.');
+      rerender();
+      // antd 토스트 DOM은 앞선 테스트 것이 body에 남아 개수를 셀 수 없어, 토스트와 함께 남기는 로그로 중복 여부를 본다.
+      const prohibitedFailureLogs = consoleError.mock.calls.filter(
+        ([message]) => message === '[airspace] prohibited 구역 조회 실패',
+      );
+      expect(prohibitedFailureLogs).toHaveLength(1);
+      expect(result.current.results[0].data).toBeDefined();
+      expect(result.current.results[0].isLoading).toBe(false);
     });
   });
 });
