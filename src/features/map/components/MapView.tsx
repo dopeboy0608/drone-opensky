@@ -5,6 +5,8 @@ import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk
 import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
+import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
+import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
 import { MapControls } from '@/features/map/components/MapControls';
 import { useCurrentCenter } from '@/features/map/hooks/useCurrentCenter';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
@@ -36,6 +38,7 @@ export const MapView = () => {
     () => getVisibleZoneTypes(airspaceVisibility),
     [airspaceVisibility],
   );
+  const { selectedZone, selectZone, clearZone } = useSelectedZone(visibleZoneTypes);
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   // "현재위치로 이동"은 kakaoMapInstance.panTo()로 명령형 호출한다. react-kakao-maps-sdk의
@@ -90,8 +93,16 @@ export const MapView = () => {
             config={config}
             data={data}
             visibleZoneTypes={visibleZoneTypes}
+            onSelectZone={selectZone}
           />
         ))}
+        {selectedZone && (
+          <AirspaceZoneOverlay
+            position={selectedZone.position}
+            zoneType={selectedZone.zoneType}
+            onClose={clearZone}
+          />
+        )}
         {hasLocation && <MapMarker position={currentPosition} />}
       </KakaoMap>
       <AirspaceLegend />

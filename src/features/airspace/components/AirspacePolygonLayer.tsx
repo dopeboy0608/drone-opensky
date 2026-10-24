@@ -1,11 +1,11 @@
-import { Fragment, useEffect, useState } from 'react';
-import { CustomOverlayMap, Polygon } from 'react-kakao-maps-sdk';
+import { memo, useMemo } from 'react';
 
-import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
+import { AirspacePolygon } from '@/features/airspace/components/AirspacePolygon';
 import { multiPolygonToKakaoPaths } from '@/features/airspace/utils/multiPolygonToKakaoPaths';
 import { polygonCentroid } from '@/features/airspace/utils/polygonCentroid';
 import type {
   AirspaceZoneConfig,
+  SelectedZone,
   VWorldFeature,
   VWorldFeatureCollection,
 } from '@/features/airspace/types';
@@ -15,11 +15,16 @@ interface AirspacePolygonLayerProps {
   data: VWorldFeatureCollection | undefined;
   /** 표시할 구역 종류(feature.zoneType) 집합. 지정하지 않으면 전부 표시한다. */
   visibleZoneTypes?: ReadonlySet<string>;
+  /** 폴리곤 클릭 시 호출. 참조가 안정적이어야 폴리곤 memo가 유지된다. */
+  onSelectZone: (zone: SelectedZone) => void;
 }
 
-interface SelectedZone {
-  position: { lat: number; lng: number };
-  zoneType: string;
+interface PolygonItem {
+  key: string;
+  zoneType: string | undefined;
+  path: { lat: number; lng: number }[][];
+  labelPosition: { lat: number; lng: number };
+  zoneNumberLabel: string | undefined;
 }
 
 const ZONE_NUMBER_PROPERTY_BY_LEVEL: Partial<Record<AirspaceZoneConfig['level'], string>> = {
@@ -39,77 +44,52 @@ const getZoneNumberLabel = (
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 };
 
-export const AirspacePolygonLayer = ({
-  config,
-  data,
-  visibleZoneTypes,
-}: AirspacePolygonLayerProps) => {
-  const [selectedZone, setSelectedZone] = useState<SelectedZone | null>(null);
+const buildPolygonItems = (
+  level: AirspaceZoneConfig['level'],
+  data: VWorldFeatureCollection,
+): PolygonItem[] =>
+  data.features.flatMap((feature, featureIndex) => {
+    const zoneNumberLabel = getZoneNumberLabel(level, feature.properties);
 
-  const selectedZoneType = selectedZone?.zoneType;
+    return multiPolygonToKakaoPaths(feature.geometry.coordinates).map((rings, polygonIndex) => ({
+      key: `${level}-${featureIndex}-${polygonIndex}`,
+      zoneType: feature.zoneType,
+      // Polygon은 path 참조가 바뀌면 setPath를 호출하므로 데이터가 바뀔 때만 만들어 참조를 고정한다.
+      path: rings.map((ring) =>
+        ring.map((point) => ({ lat: point.getLat(), lng: point.getLng() })),
+      ),
+      labelPosition: polygonCentroid(rings[0]),
+      zoneNumberLabel,
+    }));
+  });
 
-  // 숨겨진 종류의 오버레이가 남아 있다가 다시 켤 때 저절로 되살아나지 않도록 상태를 비운다.
-  useEffect(() => {
-    if (selectedZoneType && visibleZoneTypes && !visibleZoneTypes.has(selectedZoneType)) {
-      setSelectedZone(null);
-    }
-  }, [selectedZoneType, visibleZoneTypes]);
+export const AirspacePolygonLayer = memo(
+  ({ config, data, visibleZoneTypes, onSelectZone }: AirspacePolygonLayerProps) => {
+    // 필터(visibleZoneTypes)와 무관하게 data에만 의존시켜, 토글해도 path를 다시 만들지 않는다.
+    const polygonItems = useMemo(
+      () => (data ? buildPolygonItems(config.level, data) : []),
+      [config.level, data],
+    );
 
-  if (!data) {
-    return null;
-  }
+    return (
+      <>
+        {polygonItems.map((item) => {
+          const isVisible = !visibleZoneTypes || visibleZoneTypes.has(item.zoneType ?? '');
 
-  return (
-    <>
-      {data.features.flatMap((feature, featureIndex) => {
-        if (visibleZoneTypes && !visibleZoneTypes.has(feature.zoneType ?? '')) {
-          return [];
-        }
-
-        const zoneNumberLabel = getZoneNumberLabel(config.level, feature.properties);
-
-        return multiPolygonToKakaoPaths(feature.geometry.coordinates).map((rings, polygonIndex) => (
-          <Fragment
-            // biome-ignore lint/suspicious/noArrayIndexKey: GeoJSON 응답은 폴리곤 순서가 바뀌거나 중간에 삽입/삭제되지 않는 정적 목록이라 인덱스 조합으로 안전하다.
-            key={`${config.level}-${featureIndex}-${polygonIndex}`}
-          >
-            <Polygon
-              path={rings.map((ring) =>
-                ring.map((point) => ({ lat: point.getLat(), lng: point.getLng() })),
-              )}
-              strokeWeight={1}
-              strokeColor={config.color}
-              strokeOpacity={0.8}
-              fillColor={config.color}
-              fillOpacity={config.fillOpacity}
-              zIndex={config.zIndex}
-              onClick={(_target, mouseEvent) => {
-                if (!feature.zoneType) {
-                  return;
-                }
-                setSelectedZone({
-                  position: { lat: mouseEvent.latLng.getLat(), lng: mouseEvent.latLng.getLng() },
-                  zoneType: feature.zoneType,
-                });
-              }}
+          return (
+            <AirspacePolygon
+              key={item.key}
+              config={config}
+              path={item.path}
+              zoneType={item.zoneType}
+              isVisible={isVisible}
+              labelPosition={item.labelPosition}
+              zoneNumberLabel={item.zoneNumberLabel}
+              onSelectZone={onSelectZone}
             />
-            {zoneNumberLabel && (
-              <CustomOverlayMap position={polygonCentroid(rings[0])} zIndex={config.zIndex}>
-                <span className="rounded bg-white/80 px-1 text-[10px] whitespace-nowrap text-gray-800">
-                  {zoneNumberLabel}
-                </span>
-              </CustomOverlayMap>
-            )}
-          </Fragment>
-        ));
-      })}
-      {selectedZone && (
-        <AirspaceZoneOverlay
-          position={selectedZone.position}
-          zoneType={selectedZone.zoneType}
-          onClose={() => setSelectedZone(null)}
-        />
-      )}
-    </>
-  );
-};
+          );
+        })}
+      </>
+    );
+  },
+);
