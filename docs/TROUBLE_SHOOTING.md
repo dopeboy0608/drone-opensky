@@ -170,3 +170,10 @@
 - 원인: dev 서버(Chrome, 데스크톱)에서 전국 BBOX 요청 12건을 실측했다. 응답 JSON 합계는 약 14.6MB로 추정치보다 훨씬 작다. 그룹별로는 금지 0.17MB(50개), 제한 14.3MB(355개), 가능 0.09MB(56개)이며, 제한 그룹의 `lt_c_wgisnpgug`(국립자연공원) 하나가 13.6MB로 대부분을 차지한다. 이 데이터를 임시 IndexedDB에 저장했을 때 `navigator.storage.estimate()` 증가분은 약 6MB였다(Chrome이 내부적으로 압축해 JSON보다 작음. iOS Safari 등 다른 엔진은 이보다 클 수 있어 모바일 실기기 측정은 아직 안 함). 쓰기는 제한 그룹 약 56ms, 읽기는 약 6ms였다. 이 환경의 origin 쿼터는 약 2.6GB였다.
 - 해결/결론: 용량 면에서 IndexedDB는 충분하다. 참고로 localStorage는 문자열이 UTF-16이라 14.6MB도 약 29MB를 차지해 한도(~5MB)를 여전히 넘는다. 그룹별로 나눠 저장하면 변동이 큰 건 제한 그룹뿐이다. 모바일 실기기 용량·Safari의 미사용 저장소 정리 정책은 구현 후 확인이 필요하다.
 - 관련 이슈/PR: #48
+
+## 2026-10-24 10:48 — #26 주소 검색 데이터 소스: 카카오 suggest 엔드포인트 vs SDK services
+
+- 증상: 이슈 코멘트가 `map.kakao.com/api/dapi/suggest/hub`로 서제스트를 구현하라고 제안했다.
+- 원인: 이 엔드포인트는 JSON(200)을 돌려주지만 응답에 `Access-Control-Allow-Origin` 헤더가 없어(curl로 확인) 브라우저에서 직접 호출하면 CORS로 막힌다. 공식 문서에 없는 카카오맵 웹 내부용으로 보여 프록시를 두더라도 약관·안정성 위험이 있다.
+- 해결/결론: 이미 쓰는 `react-kakao-maps-sdk`의 `useKakaoLoader`에 `libraries: ['services']`를 추가해 `Places.keywordSearch`/`Geocoder.addressSearch`를 쓴다(공식, CORS·프록시 불필요). debounce(300ms)로 호출을 줄이고 `useDeferredValue`로 목록 렌더링 우선순위를 낮춘다.
+- 관련 이슈/PR: #26

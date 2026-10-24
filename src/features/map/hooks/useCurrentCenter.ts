@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DEFAULT_CENTER } from '@/features/map/constants';
+import type { MapPosition } from '@/features/map/types';
 
 interface UseCurrentCenterReturn {
-  position: { lat: number; lng: number };
+  position: MapPosition;
   hasLocation: boolean;
   /** 최초 자동 조회(마운트 시)가 성공/실패 여부와 무관하게 한 번 끝났는지 여부. */
   hasResolvedInitial: boolean;
   refetchLocation: (options?: {
-    onSuccess?: (position: { lat: number; lng: number }) => void;
+    onSuccess?: (position: MapPosition) => void;
     onError?: () => void;
   }) => void;
 }
@@ -22,10 +23,7 @@ export const useCurrentCenter = (): UseCurrentCenterReturn => {
   const isFirstFetchRef = useRef(true);
 
   const refetchLocation = useCallback(
-    (options?: {
-      onSuccess?: (position: { lat: number; lng: number }) => void;
-      onError?: () => void;
-    }) => {
+    (options?: { onSuccess?: (position: MapPosition) => void; onError?: () => void }) => {
       const markResolved = () => {
         if (isFirstFetchRef.current) {
           isFirstFetchRef.current = false;
