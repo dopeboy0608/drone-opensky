@@ -74,3 +74,11 @@ JSON 합계 ~14.6MB (금지 0.17 / 제한 14.3 / 가능 0.09MB, 국립자연공�
 - 테스트: 하이드레이션 단위 테스트 8개(채움/`dataUpdatedAt`/fresh·stale 판정/만료 항목 주입/부분 저장/빈 저장소/IndexedDB 불가/타임아웃·늦은 응답 덮어쓰기 방지), 훅 통합 테스트 2개(신선한 캐시 → VWorld 요청 0건, 만료 캐시 → 먼저 표시 후 재조회). 전체 57개 통과, `tsc`/lint 통과.
 - 미확인: 실제 브라우저 재로드 확인은 저장 연동(03) 이후 가능 — 지금은 저장하는 코드가 없어 IndexedDB가 항상 비어 있다.
 - 이월: 03에서 `queryFn` 성공 후 `writeZoneCache` 호출.
+
+### 03 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `useAirspaceZoneQueries`의 `queryFn`이 `fetchZoneGroup` 성공 직후 `void writeZoneCache(config.level, data)` 호출. 저장은 기다리지 않으며, 조회 실패 시에는 저장 코드에 도달하지 않아 기존 캐시(만료 포함)가 그대로 남는다. 마운트 재조회와 새로고침 버튼 재조회가 같은 `queryFn`을 타므로 성공 시 `savedAt`이 갱신된다.
+- 이슈 #55 본문을 전체 본문으로 보강.
+- 테스트: 훅 테스트 4개 추가(성공 시 저장, 만료 캐시 재조회 시 `savedAt` 갱신, 조회 실패 시 기존 캐시 유지 + 기존 데이터 표시, IndexedDB 불가 시 정상 표시). 전체 61개 통과, `tsc`/lint 통과.
+- 브라우저 확인(dev, Chrome): 첫 로드에 `wfs` 요청 12건 후 IndexedDB에 3개 그룹 저장(금지 50 / 제한 355 / 가능 56 features, version 1). 새로고침 후 `wfs` 요청 0건, 폴리곤 정상 렌더, DOMContentLoaded 약 54ms. (HMR WebSocket 오류는 dev 서버 환경 노이즈로 이번 변경과 무관.)
+- 이월: 04에서 재조회 실패 시 토스트·표시 정책 점검. 05에서 모바일 실기기 확인.

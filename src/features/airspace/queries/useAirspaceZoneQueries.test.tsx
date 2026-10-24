@@ -4,9 +4,9 @@ import { App as AntdApp } from 'antd';
 import { IDBFactory } from 'fake-indexeddb';
 import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
+import { readZoneCache, writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
 import { hydrateAirspaceCache } from '@/features/airspace/cache/hydrateAirspaceCache';
 import { useAirspaceZoneQueries } from '@/features/airspace/queries/useAirspaceZoneQueries';
 import { server } from '@/test/mocks/server';
@@ -80,5 +80,74 @@ describe('useAirspaceZoneQueries + IndexedDB 캐시', () => {
     expect(result.current.results[0].data).toBeDefined();
     expect(result.current.results[0].isLoading).toBe(false);
     await waitFor(() => expect(requestCount).toBeGreaterThan(0));
+  });
+
+  describe('조회 성공 시 저장', () => {
+    const useWfsHandler = (respond: () => Response) => {
+      server.use(http.get(WFS_URL, () => respond()));
+    };
+    const featureResponse = () => HttpResponse.json(makeFeatureCollection());
+    const allLevels = ['prohibited', 'restricted', 'available'] as const;
+
+    it('그룹 조회에 성공하면 결과를 IndexedDB에 저장한다', async () => {
+      useWfsHandler(featureResponse);
+      const queryClient = new QueryClient();
+      const { result } = renderQueries(queryClient);
+
+      await waitFor(() => {
+        expect(result.current.results.every((zone) => zone.data !== undefined)).toBe(true);
+      });
+
+      for (const level of allLevels) {
+        const zone = result.current.results.find((item) => item.config.level === level);
+        await waitFor(async () => {
+          expect((await readZoneCache(level))?.data).toEqual(zone?.data);
+        });
+      }
+    });
+
+    it('만료 캐시를 재조회하면 savedAt을 새 값으로 갱신한다', async () => {
+      useWfsHandler(featureResponse);
+      const expiredAt = Date.now() - 25 * HOUR_MS;
+      await writeZoneCache('prohibited', makeFeatureCollection(), expiredAt);
+      const queryClient = new QueryClient();
+      await hydrateAirspaceCache(queryClient);
+      const before = Date.now();
+
+      renderQueries(queryClient);
+
+      await waitFor(async () => {
+        expect((await readZoneCache('prohibited'))?.savedAt).toBeGreaterThanOrEqual(before);
+      });
+    });
+
+    it('조회에 실패하면 저장하지 않아 기존 캐시가 그대로 남고 화면은 기존 데이터를 쓴다', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      server.use(http.get(WFS_URL, () => HttpResponse.json({}, { status: 500 })));
+      const expiredAt = Date.now() - 25 * HOUR_MS;
+      await writeZoneCache('prohibited', makeFeatureCollection(), expiredAt);
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      await hydrateAirspaceCache(queryClient);
+
+      const { result } = renderQueries(queryClient);
+
+      await waitFor(() => expect(result.current.results[0].isError).toBe(true));
+      expect((await readZoneCache('prohibited'))?.savedAt).toBe(expiredAt);
+      expect(result.current.results[0].data).toBeDefined();
+    });
+
+    it('IndexedDB를 쓸 수 없어도 조회 결과는 정상 표시된다', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('indexedDB', undefined);
+      useWfsHandler(featureResponse);
+      const { result } = renderQueries(new QueryClient());
+
+      await waitFor(() => {
+        expect(result.current.results.every((zone) => zone.data !== undefined)).toBe(true);
+      });
+      expect(result.current.results.some((zone) => zone.isError)).toBe(false);
+
+      vi.unstubAllGlobals();
+    });
   });
 });
