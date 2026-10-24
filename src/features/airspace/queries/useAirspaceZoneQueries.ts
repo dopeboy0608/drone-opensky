@@ -3,7 +3,9 @@ import { App as AntdApp } from 'antd';
 import { useEffect, useRef } from 'react';
 
 import { fetchAirspaceZones } from '@/features/airspace/api/fetchAirspaceZones';
+import { writeZoneCache } from '@/features/airspace/cache/airspaceCacheStore';
 import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
+import { getAirspaceZoneQueryKey } from '@/features/airspace/queries/airspaceZoneQueryKey';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
 import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType';
 
@@ -42,8 +44,14 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
 
   const results = useQueries({
     queries: AIRSPACE_ZONE_CONFIGS.map((config) => ({
-      queryKey: ['airspaceZones', config.level, config.typenames],
-      queryFn: () => fetchZoneGroup(config.typenames),
+      queryKey: getAirspaceZoneQueryKey(config),
+      queryFn: async () => {
+        const data = await fetchZoneGroup(config.typenames);
+        // 저장은 다음 로드를 위한 부가 작업이라 기다리지 않는다(실패해도 writeZoneCache가 삼킨다).
+        // 조회가 실패하면 여기까지 오지 않으므로 기존 캐시(만료 포함)가 그대로 남는다.
+        void writeZoneCache(config.level, data);
+        return data;
+      },
       staleTime: STALE_TIME_MS,
       refetchOnWindowFocus: false,
     })),
