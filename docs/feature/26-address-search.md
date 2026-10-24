@@ -65,3 +65,10 @@ API 계약 의존 없음(카카오 JS SDK `services`, 공식 API). 상위 스토
 - 실제 SDK 확인(dev 서버, 3000번, Chrome): `libraries: ['services']`로 `kakao.maps.services`가 로드됨. 검색어별 결과 — "봉화산로56길": `keywordSearch` OK 15건(첫 항목은 해당 도로의 상점, 도로 자체는 아님) / `addressSearch` OK 1건("서울 중랑구 봉화산로56길"); "서울시청": `keywordSearch` OK 15건 / `addressSearch` ZERO_RESULT; "세종대로 110": 둘 다 OK. 도로명은 `addressSearch`만 도로 자체를 돌려주고 장소명은 `keywordSearch`만 잡으므로 두 API를 함께 쓰는 설계가 필요함이 확인됨. (이전의 "미검증" 항목 해소)
 - 참고: `keywordSearch`는 최대 15건을 돌려주므로 병합 후 상한 10개에서 주소 결과를 앞에 두는 순서가 중요하다.
 - 이월: 02에서 `searchAddressCandidates`를 `useQuery`로 감싸고 debounce 적용.
+
+### 02 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `useAddressSearch(input)` — 입력 trim → `useDebouncedValue`(300ms, `SEARCH_DEBOUNCE_MS`) → `useQuery`(키 `['addressSearch', 검색어]`, `enabled`는 빈 검색어 제외, `staleTime` 5분, `placeholderData: keepPreviousData`) → 후보는 `useDeferredValue`로 지연. 입력을 지우면 debounce를 기다리지 않고 후보를 즉시 비운다. 반환: `{ candidates, isLoading, isError }`. `useDebouncedValue`는 `features/map/hooks`에 분리.
+- 판단: 오래된 응답 무시는 별도 로직 없이 쿼리 키(검색어)로 해결 — 늦게 온 응답은 다른 캐시 항목에 쌓인다. `retry`는 훅에서 건드리지 않고 기본값을 쓴다(실패 시 UX는 04에서 점검).
+- 테스트: 훅 테스트 11개 추가(debounce 전 미호출, 후 호출, 연속 입력은 마지막 값만, trim, 빈 입력, 입력 삭제 즉시 비움, 캐시, 늦은 응답 무시, `isLoading`, `isError`). 전체 86개 통과, `tsc`/lint 통과. 반복 실행에서 "debounce 전 미호출" 경계 테스트가 간헐 실패(`shouldAdvanceTime`이 실제 경과 시간을 더해 299ms 경계를 넘김)해 그 테스트만 시간을 고정한 가짜 타이머로 바꿨고, 훅 테스트 25회 반복에서 실패 0회.
+- 이월: 03에서 이 훅을 antd `AutoComplete`에 연결하고 `panTo`를 붙인다. 훅은 모킹 테스트로만 검증했고 실제 SDK 연동은 03 화면에서 확인한다.
