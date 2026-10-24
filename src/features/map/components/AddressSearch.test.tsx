@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AddressSearch } from '@/features/map/components/AddressSearch';
 import { useAddressSearch } from '@/features/map/hooks/useAddressSearch';
+
 import type { SearchCandidate } from '@/features/map/types';
 
 vi.mock('@/features/map/hooks/useAddressSearch');
@@ -28,8 +29,8 @@ const sameNameElsewhere: SearchCandidate = {
 const mockCandidates = (candidates: SearchCandidate[]) => {
   mockedUseAddressSearch.mockReturnValue({
     candidates,
-    isLoading: false,
     isError: false,
+    errorUpdatedAt: 0,
     isEmpty: false,
   });
 };
@@ -139,8 +140,8 @@ describe('AddressSearch', () => {
     it('결과가 없으면 "검색 결과가 없습니다."를 보여준다', () => {
       mockedUseAddressSearch.mockReturnValue({
         candidates: [],
-        isLoading: false,
         isError: false,
+        errorUpdatedAt: 0,
         isEmpty: true,
       });
       render(<AddressSearch onSelectCandidate={vi.fn()} />);
@@ -158,19 +159,46 @@ describe('AddressSearch', () => {
       expect(screen.queryByText('검색 결과가 없습니다.')).not.toBeInTheDocument();
     });
 
-    it('검색이 실패하면 에러 토스트를 한 번 보여준다', () => {
+    const mockError = (errorUpdatedAt: number) => {
       mockedUseAddressSearch.mockReturnValue({
         candidates: [],
-        isLoading: false,
         isError: true,
+        errorUpdatedAt,
         isEmpty: false,
       });
+    };
+
+    it('검색이 실패하면 에러 토스트를 한 번 보여준다', () => {
+      mockError(100);
       const { rerender } = render(<AddressSearch onSelectCandidate={vi.fn()} />);
 
       rerender(<AddressSearch onSelectCandidate={vi.fn()} />);
 
       expect(errorToast).toHaveBeenCalledTimes(1);
       expect(errorToast).toHaveBeenCalledWith('주소 검색에 실패했습니다.');
+    });
+
+    it('새로운 에러(errorUpdatedAt이 새 값)가 생기면 토스트를 다시 보여준다', () => {
+      mockError(100);
+      const { rerender } = render(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      mockError(200);
+      rerender(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      expect(errorToast).toHaveBeenCalledTimes(2);
+    });
+
+    it('이미 안내한 에러가 캐시된 채 다시 나타나도 토스트를 반복하지 않는다', () => {
+      mockError(100);
+      const { rerender } = render(<AddressSearch onSelectCandidate={vi.fn()} />);
+      mockError(200);
+      rerender(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      // 이전 검색어(100)의 캐시된 에러로 돌아온 상황
+      mockError(100);
+      rerender(<AddressSearch onSelectCandidate={vi.fn()} />);
+
+      expect(errorToast).toHaveBeenCalledTimes(2);
     });
 
     it('실패가 없으면 토스트를 보여주지 않는다', () => {

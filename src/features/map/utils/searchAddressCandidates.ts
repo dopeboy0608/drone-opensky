@@ -40,7 +40,8 @@ const toAddressCandidate = (item: AddressSearchItem): SearchCandidate | null => 
   }
 
   return {
-    id: `address:${item.x},${item.y}`,
+    // 좌표가 같아도 이름이 다른 주소(도로명/지번)가 올 수 있어 이름까지 id에 넣어야 옵션 value가 겹치지 않는다.
+    id: `address:${item.address_name}:${item.x},${item.y}`,
     label: item.address_name,
     ...coordinates,
   };
@@ -111,5 +112,13 @@ export const searchAddressCandidates = async (keyword: string): Promise<SearchCa
   const addresses = addressResult.status === 'fulfilled' ? addressResult.value : [];
   const places = placeResult.status === 'fulfilled' ? placeResult.value : [];
 
-  return dedupe([...addresses, ...places]).slice(0, MAX_SEARCH_CANDIDATES);
+  // 주소 검색이 최대치까지 채우면 slice에서 장소 결과(역·랜드마크)가 전부 잘리므로,
+  // 주소는 앞쪽 절반만 먼저 두고 장소를 이어 붙인 뒤 남는 자리를 나머지 주소로 채운다.
+  const leadingAddressCount = Math.ceil(MAX_SEARCH_CANDIDATES / 2);
+
+  return dedupe([
+    ...addresses.slice(0, leadingAddressCount),
+    ...places,
+    ...addresses.slice(leadingAddressCount),
+  ]).slice(0, MAX_SEARCH_CANDIDATES);
 };

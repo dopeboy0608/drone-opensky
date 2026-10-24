@@ -117,6 +117,9 @@ export const MapView = () => {
       </KakaoMap>
       <AddressSearch
         onSelectCandidate={({ lat, lng }) => {
+          // 위치 권한 팝업 등으로 최초 위치 조회가 늦어질 때, 사용자가 먼저 검색으로 이동했다면
+          // 조회가 끝난 뒤 지도를 내 위치로 되돌리지 않도록 최초 중심 맞춤을 끝난 것으로 표시한다.
+          hasSetInitialCenterRef.current = true;
           kakaoMapInstance?.panTo(new kakao.maps.LatLng(lat, lng));
           showSearchMarker({ lat, lng });
         }}

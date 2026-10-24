@@ -87,7 +87,7 @@ describe('searchAddressCandidates', () => {
     const [candidate] = await searchAddressCandidates('세종대로 110');
 
     expect(candidate).toEqual({
-      id: 'address:126.9779,37.5663',
+      id: 'address:서울 중구 세종대로 110:126.9779,37.5663',
       label: '서울 중구 세종대로 110',
       lat: 37.5663,
       lng: 126.9779,
@@ -107,7 +107,7 @@ describe('searchAddressCandidates', () => {
     const candidates = await searchAddressCandidates('세종대로 110');
 
     expect(candidates.map((candidate) => candidate.id)).toEqual([
-      'address:126.9779,37.5663',
+      'address:서울 중구 세종대로 110:126.9779,37.5663',
       'place:2',
     ]);
   });
@@ -161,5 +161,54 @@ describe('searchAddressCandidates', () => {
     kakaoServicesMock.addressResponse = { status: 'ERROR', result: [] };
 
     await expect(searchAddressCandidates('시청')).rejects.toThrow();
+  });
+
+  it('좌표가 같고 이름이 다른 주소 후보도 서로 다른 id를 가진다', async () => {
+    kakaoServicesMock.addressResponse = {
+      status: 'OK',
+      result: [
+        makeAddress({ address_name: '서울 중구 세종대로 110' }),
+        makeAddress({ address_name: '서울 중구 태평로1가 31' }),
+      ],
+    };
+
+    const candidates = await searchAddressCandidates('시청');
+
+    expect(candidates).toHaveLength(2);
+    expect(new Set(candidates.map((candidate) => candidate.id)).size).toBe(2);
+  });
+
+  it('주소 결과가 많아도 장소 결과가 밀려나지 않도록 주소는 앞쪽 5개만 먼저 둔다', async () => {
+    kakaoServicesMock.addressResponse = {
+      status: 'OK',
+      result: Array.from({ length: 10 }, (_, index) =>
+        makeAddress({ address_name: `주소${index}`, x: String(127 + index) }),
+      ),
+    };
+    kakaoServicesMock.placesResponse = {
+      status: 'OK',
+      result: Array.from({ length: 15 }, (_, index) =>
+        makePlace({ id: String(index), place_name: `장소${index}`, x: String(130 + index) }),
+      ),
+    };
+
+    const labels = (await searchAddressCandidates('강남')).map((candidate) => candidate.label);
+
+    expect(labels).toHaveLength(10);
+    expect(labels.slice(0, 5)).toEqual(['주소0', '주소1', '주소2', '주소3', '주소4']);
+    expect(labels.slice(5)).toEqual(['장소0', '장소1', '장소2', '장소3', '장소4']);
+  });
+
+  it('장소 결과가 적으면 남는 자리를 나머지 주소 결과가 채운다', async () => {
+    kakaoServicesMock.addressResponse = {
+      status: 'OK',
+      result: Array.from({ length: 10 }, (_, index) =>
+        makeAddress({ address_name: `주소${index}`, x: String(127 + index) }),
+      ),
+    };
+
+    const candidates = await searchAddressCandidates('세종로');
+
+    expect(candidates).toHaveLength(10);
   });
 });

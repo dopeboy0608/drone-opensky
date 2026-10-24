@@ -3,10 +3,11 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SEARCH_DEBOUNCE_MS } from '@/features/map/constants';
 import { useAddressSearch } from '@/features/map/hooks/useAddressSearch';
-import type { SearchCandidate } from '@/features/map/types';
 import { searchAddressCandidates } from '@/features/map/utils/searchAddressCandidates';
+
+import { SEARCH_DEBOUNCE_MS } from '@/features/map/constants';
+import type { SearchCandidate } from '@/features/map/types';
 
 vi.mock('@/features/map/utils/searchAddressCandidates');
 
@@ -152,25 +153,6 @@ describe('useAddressSearch', () => {
     expect(result.current.candidates).toEqual([makeCandidate('세종대로 결과')]);
   });
 
-  it('검색 중에는 isLoading이 true이고 끝나면 false다', async () => {
-    let resolveSearch: (value: SearchCandidate[]) => void = () => {};
-    mockedSearch.mockImplementation(
-      () =>
-        new Promise<SearchCandidate[]>((resolve) => {
-          resolveSearch = resolve;
-        }),
-    );
-    const { result, rerender } = renderUseAddressSearch('');
-
-    rerender({ input: '세종' });
-    await advanceDebounce();
-    await waitFor(() => expect(result.current.isLoading).toBe(true));
-
-    await act(async () => resolveSearch([makeCandidate('세종')]));
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-  });
-
   it('검색이 실패하면 isError가 true이고 후보는 비어 있다', async () => {
     mockedSearch.mockRejectedValue(new Error('검색 실패'));
     const { result, rerender } = renderUseAddressSearch('');
@@ -180,6 +162,30 @@ describe('useAddressSearch', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.candidates).toEqual([]);
+  });
+
+  it('입력을 지우고 새로 입력하는 동안(debounce 대기)에는 이전 검색의 후보를 보여주지 않는다', async () => {
+    const { result, rerender } = renderUseAddressSearch('');
+    rerender({ input: '세종' });
+    await advanceDebounce();
+    await waitFor(() => expect(result.current.candidates).toHaveLength(1));
+    rerender({ input: '' });
+    await advanceDebounce();
+
+    rerender({ input: '부' });
+
+    expect(result.current.candidates).toEqual([]);
+  });
+
+  it('검색이 실패하면 errorUpdatedAt이 0보다 크고, 그 전에는 0이다', async () => {
+    mockedSearch.mockRejectedValue(new Error('검색 실패'));
+    const { result, rerender } = renderUseAddressSearch('');
+    expect(result.current.errorUpdatedAt).toBe(0);
+
+    rerender({ input: '세종' });
+    await advanceDebounce();
+
+    await waitFor(() => expect(result.current.errorUpdatedAt).toBeGreaterThan(0));
   });
 
   describe('isEmpty', () => {
@@ -239,7 +245,7 @@ describe('useAddressSearch', () => {
 
       rerender({ input: '세종' });
       await advanceDebounce();
-      await waitFor(() => expect(result.current.isLoading).toBe(true));
+      await waitFor(() => expect(mockedSearch).toHaveBeenCalledWith('세종'));
 
       expect(result.current.isEmpty).toBe(false);
 
