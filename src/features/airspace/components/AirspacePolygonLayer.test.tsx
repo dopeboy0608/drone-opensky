@@ -9,25 +9,33 @@ import type { VWorldFeature, VWorldFeatureCollection } from '@/features/airspace
 import { installKakaoMapsMock, uninstallKakaoMapsMock } from '@/test/mocks/kakaoMaps';
 
 // 실제 SDK는 jsdom에서 로딩되지 않아, 검증하기 쉬운 단순 컴포넌트로 대체한다.
+// Polygon이 렌더될 때마다 받은 path 참조를 기록해, 불필요한 리렌더(= setPath 호출)를 검증한다.
+const polygonRenders: unknown[] = [];
+
 vi.mock('react-kakao-maps-sdk', () => ({
   Polygon: ({
     onClick,
     fillColor,
+    path,
   }: {
+    path: unknown;
     onClick: (
       target: unknown,
       event: { latLng: { getLat: () => number; getLng: () => number } },
     ) => void;
     fillColor: string;
-  }) => (
-    <button
-      type="button"
-      data-testid="polygon"
-      onClick={() => onClick(undefined, { latLng: { getLat: () => 37, getLng: () => 127 } })}
-    >
-      {fillColor}
-    </button>
-  ),
+  }) => {
+    polygonRenders.push(path);
+    return (
+      <button
+        type="button"
+        data-testid="polygon"
+        onClick={() => onClick(undefined, { latLng: { getLat: () => 37, getLng: () => 127 } })}
+      >
+        {fillColor}
+      </button>
+    );
+  },
   CustomOverlayMap: ({ children }: { children: ReactNode }) => (
     <div data-testid="overlay">{children}</div>
   ),
@@ -72,6 +80,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
       <AirspacePolygonLayer
         config={config}
         data={makeData(makeFeature('관제권'), makeFeature('군작전구역'))}
+        onSelectZone={vi.fn()}
       />,
     );
 
@@ -84,6 +93,7 @@ describe('AirspacePolygonLayer 토글 필터', () => {
         config={config}
         data={makeData(makeFeature('관제권', 'R1'), makeFeature('군작전구역', 'R2'))}
         visibleZoneTypes={new Set(['관제권'])}
+        onSelectZone={vi.fn()}
       />,
     );
 
@@ -98,27 +108,98 @@ describe('AirspacePolygonLayer 토글 필터', () => {
         config={config}
         data={makeData(makeFeature('관제권'))}
         visibleZoneTypes={new Set()}
+        onSelectZone={vi.fn()}
       />,
     );
 
     expect(screen.queryByTestId('polygon')).not.toBeInTheDocument();
   });
 
-  it('열린 안내 오버레이의 종류가 숨겨지면 닫히고, 다시 켜도 다시 열리지 않는다', () => {
-    const data = makeData(makeFeature('관제권'));
-    const { rerender } = render(
-      <AirspacePolygonLayer config={config} data={data} visibleZoneTypes={new Set(['관제권'])} />,
+  it('폴리곤을 클릭하면 구역 종류와 클릭 위치로 onSelectZone을 호출한다', () => {
+    const onSelectZone = vi.fn();
+    render(
+      <AirspacePolygonLayer
+        config={config}
+        data={makeData(makeFeature('관제권'))}
+        onSelectZone={onSelectZone}
+      />,
     );
 
     fireEvent.click(screen.getByTestId('polygon'));
-    expect(screen.getByText('관제권')).toBeInTheDocument();
 
-    rerender(<AirspacePolygonLayer config={config} data={data} visibleZoneTypes={new Set()} />);
-    expect(screen.queryByText('관제권')).not.toBeInTheDocument();
+    expect(onSelectZone).toHaveBeenCalledWith({
+      position: { lat: 37, lng: 127 },
+      zoneType: '관제권',
+    });
+  });
+
+  it('구역 종류가 없는 폴리곤은 클릭해도 onSelectZone을 호출하지 않는다', () => {
+    const onSelectZone = vi.fn();
+    render(
+      <AirspacePolygonLayer
+        config={config}
+        data={makeData({ ...makeFeature('관제권'), zoneType: undefined })}
+        onSelectZone={onSelectZone}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('polygon'));
+
+    expect(onSelectZone).not.toHaveBeenCalled();
+  });
+});
+
+describe('AirspacePolygonLayer 렌더 비용', () => {
+  beforeEach(() => {
+    installKakaoMapsMock();
+    polygonRenders.length = 0;
+  });
+  afterEach(() => {
+    cleanup();
+    uninstallKakaoMapsMock();
+  });
+
+  if (!restrictedConfig) {
+    throw new Error('restricted 설정이 없습니다');
+  }
+  const config = restrictedConfig;
+
+  it('데이터가 같으면 부모가 리렌더되어도 폴리곤을 다시 렌더링하지 않는다', () => {
+    const data = makeData(makeFeature('관제권'), makeFeature('군작전구역'));
+    const onSelectZone = vi.fn();
+    const { rerender } = render(
+      <AirspacePolygonLayer config={config} data={data} onSelectZone={onSelectZone} />,
+    );
+    expect(polygonRenders).toHaveLength(2);
+
+    rerender(<AirspacePolygonLayer config={config} data={data} onSelectZone={onSelectZone} />);
+
+    expect(polygonRenders).toHaveLength(2);
+  });
+
+  it('필터가 바뀌어도 남아 있는 폴리곤은 같은 path 참조로 다시 렌더링하지 않는다', () => {
+    const data = makeData(makeFeature('관제권'), makeFeature('군작전구역'));
+    const onSelectZone = vi.fn();
+    const { rerender } = render(
+      <AirspacePolygonLayer
+        config={config}
+        data={data}
+        visibleZoneTypes={new Set(['관제권', '군작전구역'])}
+        onSelectZone={onSelectZone}
+      />,
+    );
+    const [firstPath] = polygonRenders;
 
     rerender(
-      <AirspacePolygonLayer config={config} data={data} visibleZoneTypes={new Set(['관제권'])} />,
+      <AirspacePolygonLayer
+        config={config}
+        data={data}
+        visibleZoneTypes={new Set(['관제권'])}
+        onSelectZone={onSelectZone}
+      />,
     );
-    expect(screen.queryByText('관제권')).not.toBeInTheDocument();
+
+    expect(polygonRenders).toHaveLength(2);
+    expect(polygonRenders[0]).toBe(firstPath);
   });
 });

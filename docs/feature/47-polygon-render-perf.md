@@ -80,3 +80,11 @@ API 의존 없음. 02·03의 "눈에 띄는 지연 없음"은 01의 측정 수�
 - 구현: 코드 변경 없음. 임시 계측(`src/perfProbe.tsx`, `MapView`의 `PerfProfiler` 래핑, `.claude/launch.json`)으로 측정 후 `docs/TROUBLE_SHOOTING.md`에 베이스라인 기록. 임시 파일은 커밋하지 않고, 02 재측정 후 되돌린다.
 - 핵심 수치: 토글 1회 ~600ms(유지되는 폴리곤 전부 `setPath` 호출, 렌더 ~125ms는 일부), 전체 선택 ~1.5s, 오버레이 열기 시 해당 레이어 50개 `setPath`.
 - 이월: 02에서 path 안정화·선택 오버레이 분리 후 같은 시나리오를 재측정. 수치는 개발 모드(StrictMode) 기준이라 비교용.
+
+### 02 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `AirspacePolygon`(memo), `AirspacePolygonLayer`(`memo` + path를 `data` 기준 `useMemo`, 필터는 렌더 시에만 적용), `useSelectedZone` 훅(선택 상태 + 숨김 시 닫기 effect, `MapView`가 소유), `SelectedZone` 타입을 `types.ts`로 이동. 선택 오버레이 위치는 MapView state(훅)로 결정 — 단일 소비처라 전역 store가 불필요.
+- 동작 변경 1건: 선택 상태가 레이어별에서 하나로 합쳐져, 다른 구역을 클릭하면 이전 오버레이가 닫히고 하나만 열린다 (이전: 레벨이 다른 폴리곤을 클릭하면 오버레이가 2개 열릴 수 있었음).
+- 테스트: 레이어 테스트에 onSelectZone 호출, 리렌더 시 Polygon 미재렌더(path 참조 동일) 검증 추가, `useSelectedZone` 훅 테스트 추가(오버레이 숨김 시 닫기는 훅 테스트로 이동). `pnpm test` 32개 통과, `tsc` 통과.
+- 재측정: 토글 ~~600ms → 35~~65ms, 오버레이 열기·닫기 `setPath` 0회 (TROUBLE_SHOOTING.md 참고). 전체 선택은 ~630ms로 남음.
+- 이월: 03에서 ON 시 폴리곤 재생성 비용(전체 선택 ~630ms)과 라벨 오버레이 최적화. 임시 계측(`perfProbe.tsx`)은 코드에서 제거했고 스크래치패드에 보관(03 재측정 때 MapView에 PerfProfiler로 다시 감싸 사용). `.claude/launch.json`은 미추적 임시 파일.

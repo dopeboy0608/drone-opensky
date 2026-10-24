@@ -23,3 +23,8 @@ export interface VWorldFeatureCollection {
   type: 'FeatureCollection';
   features: VWorldFeature[];
 }
+
+export interface SelectedZone {
+  position: { lat: number; lng: number };
+  zoneType: string;
+}
