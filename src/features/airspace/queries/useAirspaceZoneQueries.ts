@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import { fetchAirspaceZones } from '@/features/airspace/api/fetchAirspaceZones';
 import { AIRSPACE_ZONE_CONFIGS, AIRSPACE_ZONE_LABELS } from '@/features/airspace/constants';
+import { getAirspaceZoneQueryKey } from '@/features/airspace/queries/airspaceZoneQueryKey';
 import type { AirspaceZoneConfig, VWorldFeatureCollection } from '@/features/airspace/types';
 import { tagFeatureZoneType } from '@/features/airspace/utils/tagFeatureZoneType';
 
@@ -42,7 +43,7 @@ export const useAirspaceZoneQueries = (): UseAirspaceZoneQueriesReturn => {
 
   const results = useQueries({
     queries: AIRSPACE_ZONE_CONFIGS.map((config) => ({
-      queryKey: ['airspaceZones', config.level, config.typenames],
+      queryKey: getAirspaceZoneQueryKey(config),
       queryFn: () => fetchZoneGroup(config.typenames),
       staleTime: STALE_TIME_MS,
       refetchOnWindowFocus: false,

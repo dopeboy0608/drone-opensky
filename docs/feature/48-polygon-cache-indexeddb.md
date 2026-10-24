@@ -65,3 +65,12 @@ JSON 합계 ~14.6MB (금지 0.17 / 제한 14.3 / 가능 0.09MB, 국립자연공�
 - 스펙: `docs/spec/48-airspace-idb-cache.md`. 테스트 먼저 작성(TDD) 후 구현.
 - 테스트: `fake-indexeddb` devDependency 추가, `src/test/setup.ts`에 `import 'fake-indexeddb/auto'` 한 줄. 캐시 저장소 테스트 14개 추가, 전체 47개 통과, `tsc`/lint 통과.
 - 이월: #54에서 `readZoneCache`를 호출해 `setQueryData(..., { updatedAt: savedAt })`로 주입. 쿼리 키 생성을 훅과 공유하도록 한곳으로 모을 것. 임시 `.claude/launch.json`은 미추적 상태(커밋 제외).
+
+### 02 구현 완료 (커밋 전, 사용자 확인 대기)
+
+- 구현: `hydrateAirspaceCache(queryClient, { timeoutMs, readCache })` — 3개 그룹을 읽어 `setQueryData(key, data, { updatedAt: savedAt })`로 주입. 만료 항목도 주입(재조회는 `staleTime`, 재조회 실패 시 기존 데이터 유지). 타임아웃 2초, 늦게 도착한 옛 캐시가 이미 받은 데이터를 덮어쓰지 않도록 `getQueryData`가 비어 있을 때만 주입.
+- 연결: `src/index.tsx`에서 `hydrateAirspaceCache(queryClient).finally(render)`로 첫 렌더 전에 실행. 이를 위해 `QueryClient`를 `src/api/queryClient.ts`로 분리(App.tsx 변경은 import 2줄). 쿼리 키는 `getAirspaceZoneQueryKey`(`queries/airspaceZoneQueryKey.ts`) 한 곳으로 모아 훅과 하이드레이션이 공유.
+- 판단: `readCache` 주입 옵션은 타임아웃 테스트를 위한 것(기본값은 실제 `readZoneCache`).
+- 테스트: 하이드레이션 단위 테스트 8개(채움/`dataUpdatedAt`/fresh·stale 판정/만료 항목 주입/부분 저장/빈 저장소/IndexedDB 불가/타임아웃·늦은 응답 덮어쓰기 방지), 훅 통합 테스트 2개(신선한 캐시 → VWorld 요청 0건, 만료 캐시 → 먼저 표시 후 재조회). 전체 57개 통과, `tsc`/lint 통과.
+- 미확인: 실제 브라우저 재로드 확인은 저장 연동(03) 이후 가능 — 지금은 저장하는 코드가 없어 IndexedDB가 항상 비어 있다.
+- 이월: 03에서 `queryFn` 성공 후 `writeZoneCache` 호출.
