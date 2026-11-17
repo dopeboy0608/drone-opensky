@@ -3,7 +3,7 @@ import { Button, Card, ConfigProvider, theme } from 'antd';
 import { CustomOverlayMap } from 'react-kakao-maps-sdk';
 
 import { ZoneGuidanceBody } from '@/features/airspace/components/ZoneGuidanceBody';
-import { resolveFlightGuidance } from '@/features/airspace/utils/resolveFlightGuidance';
+import { formatZoneAddressTitle } from '@/features/airspace/utils/formatZoneAddress';
 
 import type { SelectedZone } from '@/features/airspace/types';
 import type { AddressState } from '@/types/address';
@@ -30,7 +30,7 @@ export const AirspaceZoneOverlay = ({
   onClose,
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
-  const { headline } = resolveFlightGuidance(zoneType);
+  const addressTitle = formatZoneAddressTitle(address);
 
   return (
     // 카카오 앵커(xAnchor/yAnchor)는 오버레이를 붙일 때 잰 콘텐츠 크기로 오프셋을 계산하고, 안내 박스가 열린 채
@@ -49,7 +49,12 @@ export const AirspaceZoneOverlay = ({
         >
           <Card
             size="small"
-            title={zoneType ?? headline}
+            title={
+              // 긴 주소는 말줄임하고 전체는 title 속성으로 보인다. min-w-0은 flex 자식이 내용 폭만큼 늘어나 말줄임이 안 되는 것을 막는다.
+              <span className="block min-w-0 truncate" title={addressTitle}>
+                {addressTitle}
+              </span>
+            }
             extra={
               // filled 기본 배경(colorFillTertiary, 약 4%)이 지도 위에서 거의 안 보여 한 단계씩 진하게 올린다.
               // 버튼에만 적용되도록 이 서브트리 토큰만 바꾼다.
