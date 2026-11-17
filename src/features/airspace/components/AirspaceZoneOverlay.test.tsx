@@ -112,13 +112,14 @@ describe('AirspaceZoneOverlay 앵커', () => {
       expect(screen.queryByText(/비행 가능/)).toBeNull();
     });
 
-    it('주소를 도로명과 지번으로 보여 준다', () => {
+    it('주소는 도로명을 제목으로, 지번은 보조 줄로 보여 준다', () => {
       renderOverlay('관제권', {
         status: 'success',
         address: { primary: '서울 중구 세종대로 110', secondary: '서울 중구 태평로1가 31' },
       });
 
-      expect(screen.getByText('서울 중구 세종대로 110 (서울 중구 태평로1가 31)')).toBeDefined();
+      expect(screen.getByText('서울 중구 세종대로 110')).toBeDefined();
+      expect(screen.getByText('지번 서울 중구 태평로1가 31')).toBeDefined();
     });
 
     it('주소 조회 중과 실패 상태를 구역 안내와 함께 보여 준다', () => {
@@ -148,13 +149,13 @@ describe('AirspaceZoneOverlay 앵커', () => {
         />,
       );
 
-      expect(screen.getByText('범례에서 숨긴 구역입니다.')).toBeDefined();
+      expect(screen.getByText('(범례에서 숨김)')).toBeDefined();
     });
 
     it('숨기지 않은 구역에는 숨김 안내를 쓰지 않는다', () => {
       renderOverlay('관제권');
 
-      expect(screen.queryByText('범례에서 숨긴 구역입니다.')).toBeNull();
+      expect(screen.queryByText('(범례에서 숨김)')).toBeNull();
     });
 
     it('겹침 확인 중에는 없음으로 단정하지 않고, 끝나면 겹친 구역을 보여 준다', () => {
@@ -178,6 +179,44 @@ describe('AirspaceZoneOverlay 앵커', () => {
       );
       expect(screen.getByText('관제권').className).toContain('ant-tag');
       expect(screen.getByText('경계구역').className).toContain('ant-tag');
+    });
+
+    it('클릭한 구역과 겹친 구역을 한 줄에 이어 붙인다 (클릭 구역은 진한 태그, 겹침은 연한 태그)', () => {
+      render(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="비행금지구역"
+          overlap={{ zoneTypes: ['관제권', '경계구역'], isComplete: true, hasFailure: false }}
+          onClose={vi.fn()}
+        />,
+      );
+
+      const clicked = screen.getByText('비행금지구역');
+      const overlapping = screen.getByText('관제권');
+
+      expect(clicked.parentElement).toBe(overlapping.parentElement);
+      expect(clicked.className).toContain('ant-tag-solid');
+      expect(overlapping.className).not.toContain('ant-tag-solid');
+      expect(screen.queryByText('겹침')).toBeNull();
+    });
+
+    it('겹침 확인이 끝났고 없으면 태그는 하나이고 없음 문구를 붙인다', () => {
+      render(
+        <AirspaceZoneOverlay
+          position={{ lat: 37, lng: 127 }}
+          zoneType="관제권"
+          overlap={{ zoneTypes: [], isComplete: true, hasFailure: false }}
+          onClose={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('겹치는 구역 없음')).toBeDefined();
+    });
+
+    it('카드 제목은 주소다 (주소 상태가 없으면 기본 제목)', () => {
+      renderOverlay('관제권');
+
+      expect(screen.getByText('공역 안내')).toBeDefined();
     });
 
     it('구역이 없는 안내에는 겹침 줄을 쓰지 않는다', () => {
