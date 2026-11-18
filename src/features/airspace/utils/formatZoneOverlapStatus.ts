@@ -17,5 +17,6 @@ export const formatZoneOverlapStatus = (overlap: SelectedZone['overlap']): strin
     return hasZones ? '(일부 조회 실패)' : '겹침 확인 중 일부 조회에 실패했습니다.';
   }
 
-  return hasZones ? null : '겹치는 구역 없음';
+  // 겹침이 없으면 태그가 하나뿐인 것으로 충분히 전달되어 문구를 쓰지 않는다(#101).
+  return null;
 };
