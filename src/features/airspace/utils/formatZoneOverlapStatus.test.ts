@@ -19,10 +19,10 @@ describe('formatZoneOverlapStatus', () => {
     ).toBe('확인 중…');
   });
 
-  it('끝났고 겹침이 없으면 없음이라고 알린다', () => {
-    expect(formatZoneOverlapStatus({ zoneTypes: [], isComplete: true, hasFailure: false })).toBe(
-      '겹치는 구역 없음',
-    );
+  it('끝났고 겹침이 없으면 태그 하나로 충분해 문구가 없다', () => {
+    expect(
+      formatZoneOverlapStatus({ zoneTypes: [], isComplete: true, hasFailure: false }),
+    ).toBeNull();
   });
 
   it('겹친 구역이 있고 정상 종료면 태그만으로 충분해 문구가 없다', () => {

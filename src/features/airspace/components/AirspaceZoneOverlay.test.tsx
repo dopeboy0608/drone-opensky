@@ -200,7 +200,7 @@ describe('AirspaceZoneOverlay 앵커', () => {
       expect(screen.queryByText('겹침')).toBeNull();
     });
 
-    it('겹침 확인이 끝났고 없으면 태그는 하나이고 없음 문구를 붙인다', () => {
+    it('겹침 확인이 끝났고 없으면 태그는 하나이고 별도 문구는 없다', () => {
       render(
         <AirspaceZoneOverlay
           position={{ lat: 37, lng: 127 }}
@@ -210,7 +210,8 @@ describe('AirspaceZoneOverlay 앵커', () => {
         />,
       );
 
-      expect(screen.getByText('겹치는 구역 없음')).toBeDefined();
+      expect(screen.getByText('관제권')).toBeDefined();
+      expect(screen.queryByText(/겹침|겹치는/)).toBeNull();
     });
 
     it('카드 제목은 주소다 (주소 상태가 없으면 기본 제목)', () => {
