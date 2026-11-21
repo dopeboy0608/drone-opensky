@@ -58,7 +58,7 @@ describe('airspaceFilterStore', () => {
     const { visibility } = useAirspaceFilterStore.getState();
     expect(visibility.lt_c_aisprhc).toBe(false);
     expect(visibility.lt_c_aistemp).toBe(false);
-    expect(visibility.lt_c_aisdngc).toBe(false);
+    expect(visibility.lt_c_aisdngc).toBe(true);
     expect(visibility.lt_c_aisctrc).toBe(true);
     expect(visibility.lt_c_aisuac).toBe(true);
   });

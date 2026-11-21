@@ -9,7 +9,8 @@ export const KOREA_BBOX = '124,33,132,43';
 const ZONE_TYPES = [
   { typename: 'lt_c_aisprhc', label: '비행금지구역', level: 'prohibited' },
   { typename: 'lt_c_aistemp', label: '임시비행금지구역', level: 'prohibited' },
-  { typename: 'lt_c_aisdngc', label: '위험구역', level: 'prohibited' },
+  // 국토부 범례는 위험지역을 비행금지구역과 별개 종류(민트색)로 표시한다. 금지로 분류하면 지도 색과 안내가 국토부보다 과장된다(#105).
+  { typename: 'lt_c_aisdngc', label: '위험구역', level: 'restricted' },
   { typename: 'lt_c_aisresc', label: '비행제한구역', level: 'restricted' },
   { typename: 'lt_c_aisctrc', label: '관제권', level: 'restricted' },
   { typename: 'lt_c_aismoac', label: '군작전구역', level: 'restricted' },

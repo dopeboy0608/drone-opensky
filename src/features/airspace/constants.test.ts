@@ -5,6 +5,7 @@ import {
   AIRSPACE_ZONE_LABELS,
   KOREA_BBOX,
   TYPENAME_ZONE_LABELS,
+  ZONE_LEVEL_BY_LABEL,
 } from '@/features/airspace/constants';
 
 // 특성 테스트(이슈 #51 P1): 구조를 바꾸는 리팩터링이 값과 순서를 그대로 보존하는지 고정한다.
@@ -35,7 +36,7 @@ describe('airspace constants', () => {
     expect(AIRSPACE_ZONE_CONFIGS).toEqual([
       {
         level: 'prohibited',
-        typenames: ['lt_c_aisprhc', 'lt_c_aistemp', 'lt_c_aisdngc'],
+        typenames: ['lt_c_aisprhc', 'lt_c_aistemp'],
         color: '#FF4D4F',
         fillOpacity: 0.35,
         zIndex: 3,
@@ -43,6 +44,7 @@ describe('airspace constants', () => {
       {
         level: 'restricted',
         typenames: [
+          'lt_c_aisdngc',
           'lt_c_aisresc',
           'lt_c_aisctrc',
           'lt_c_aismoac',
@@ -63,6 +65,11 @@ describe('airspace constants', () => {
         zIndex: 1,
       },
     ]);
+  });
+
+  // 국토부는 위험지역을 비행금지구역과 구분해 표시한다(#105). 금지로 분류하면 안내가 '원칙적 비행 금지'로 과장된다.
+  it('위험구역은 비행 금지가 아니라 비행 제한으로 분류한다', () => {
+    expect(ZONE_LEVEL_BY_LABEL['위험구역']).toBe('restricted');
   });
 
   it('AIRSPACE_ZONE_LABELS는 그룹별 한글 라벨이다', () => {
