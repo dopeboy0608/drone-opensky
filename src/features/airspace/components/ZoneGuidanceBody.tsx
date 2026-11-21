@@ -1,6 +1,9 @@
 import { Tag } from 'antd';
 
-import { formatZoneAddressSubline } from '@/features/airspace/utils/formatZoneAddress';
+import {
+  formatZoneAddressFull,
+  formatZoneAddressSubline,
+} from '@/features/airspace/utils/formatZoneAddress';
 import { formatZoneOverlapStatus } from '@/features/airspace/utils/formatZoneOverlapStatus';
 import {
   type GuidanceTone,
@@ -35,10 +38,11 @@ export const ZoneGuidanceBody = ({
   overlap,
 }: ZoneGuidanceBodyProps) => {
   const guidance = resolveFlightGuidance(zoneType);
+  const fullAddress = formatZoneAddressFull(address);
   const addressSubline = formatZoneAddressSubline(address);
   const overlapStatus = formatZoneOverlapStatus(overlap);
   const overlapZoneTypes = overlap?.zoneTypes ?? [];
-  const hasAddressSubline = address.status === 'loading' || addressSubline !== null;
+  const hasAddressFooter = address.status === 'loading' || fullAddress !== null;
 
   return (
     // 카드는 한 줄 폭(whitespace-nowrap)으로 펴지므로, 안내 문구만 최대 폭을 두어 줄바꿈한다.
@@ -67,8 +71,14 @@ export const ZoneGuidanceBody = ({
         <div>{zoneType === null ? guidance.headline : guidance.detail}</div>
         {zoneType === null && <div className="text-gray-500">{guidance.detail}</div>}
       </div>
-      {/* 지번이 늦게 도착해도 높이가 변하지 않도록 조회 중에도 한 줄을 확보한다. */}
-      {hasAddressSubline && <div className="min-h-4 text-gray-500">{addressSubline}</div>}
+      {/* 제목은 지역을 뺀 상세 주소라 전체 주소를 맨 아래에 줄바꿈해 보여 준다(break-keep으로 단어 중간에서 끊기지 않게).
+      주소가 늦게 도착해도 높이가 변하지 않도록 조회 중에도 한 줄을 확보한다. */}
+      {hasAddressFooter && (
+        <div className="min-h-4 text-gray-500">
+          <div className="break-keep">{fullAddress}</div>
+          {addressSubline && <div className="break-keep">{addressSubline}</div>}
+        </div>
+      )}
     </div>
   );
 };

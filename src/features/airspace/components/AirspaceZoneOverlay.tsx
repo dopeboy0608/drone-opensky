@@ -3,7 +3,10 @@ import { Button, Card, ConfigProvider, theme } from 'antd';
 import { CustomOverlayMap } from 'react-kakao-maps-sdk';
 
 import { ZoneGuidanceBody } from '@/features/airspace/components/ZoneGuidanceBody';
-import { formatZoneAddressTitle } from '@/features/airspace/utils/formatZoneAddress';
+import {
+  formatZoneAddressFull,
+  formatZoneAddressTitle,
+} from '@/features/airspace/utils/formatZoneAddress';
 
 import type { SelectedZone } from '@/features/airspace/types';
 import type { AddressState } from '@/types/address';
@@ -31,6 +34,7 @@ export const AirspaceZoneOverlay = ({
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
   const addressTitle = formatZoneAddressTitle(address);
+  const fullAddress = formatZoneAddressFull(address);
 
   return (
     // 카카오 앵커(xAnchor/yAnchor)는 오버레이를 붙일 때 잰 콘텐츠 크기로 오프셋을 계산하고, 안내 박스가 열린 채
@@ -50,8 +54,8 @@ export const AirspaceZoneOverlay = ({
           <Card
             size="small"
             title={
-              // 긴 주소는 말줄임하고 전체는 title 속성으로 보인다. min-w-0은 flex 자식이 내용 폭만큼 늘어나 말줄임이 안 되는 것을 막는다.
-              <span className="block min-w-0 truncate" title={addressTitle}>
+              // 제목은 시·도·시군구를 뺀 상세 주소지만 그래도 길면 말줄임하고, 전체 주소는 title 속성과 카드 아래 줄로 보인다. min-w-0은 flex 자식이 내용 폭만큼 늘어나 말줄임이 안 되는 것을 막는다.
+              <span className="block min-w-0 truncate" title={fullAddress ?? addressTitle}>
                 {addressTitle}
               </span>
             }
