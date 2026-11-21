@@ -35,7 +35,7 @@ describe('formatZoneAddressSubline', () => {
         status: 'success',
         address: { primary: '도로명', secondary: '지번 주소' },
       }),
-    ).toBe('지번 지번 주소');
+    ).toBe('(지번 주소)');
     expect(
       formatZoneAddressSubline({ status: 'success', address: { primary: '지번만' } }),
     ).toBeNull();

@@ -119,7 +119,7 @@ describe('AirspaceZoneOverlay 앵커', () => {
       });
 
       expect(screen.getByText('서울 중구 세종대로 110')).toBeDefined();
-      expect(screen.getByText('지번 서울 중구 태평로1가 31')).toBeDefined();
+      expect(screen.getByText('(서울 중구 태평로1가 31)')).toBeDefined();
     });
 
     it('주소 조회 중과 실패 상태를 구역 안내와 함께 보여 준다', () => {

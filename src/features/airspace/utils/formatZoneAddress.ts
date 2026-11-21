@@ -38,10 +38,10 @@ export const formatZoneAddressTitle = (address: AddressState): string => {
   }
 };
 
-// 도로명이 제목일 때 함께 보여 주는 지번. 없으면 null.
+// 도로명 주소 아래에 괄호로 함께 보여 주는 지번. 라벨 대신 괄호가 "같은 위치의 다른 표기"를 뜻하는 한국 주소 관례다. 없으면 null.
 export const formatZoneAddressSubline = (address: AddressState): string | null =>
   address.status === 'success' && address.address.secondary
-    ? `지번 ${address.address.secondary}`
+    ? `(${address.address.secondary})`
     : null;
 
 // 제목에서 지역을 뺀 대신 카드 맨 아래에 보여 주는 전체 주소. 줄바꿈은 표시 쪽에서 처리한다.
