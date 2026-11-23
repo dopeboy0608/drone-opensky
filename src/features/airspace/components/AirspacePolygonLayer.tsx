@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 
+import { STACK_Z_INDEX_BY_LABEL } from '@/features/airspace/constants';
 import { AirspacePolygon } from '@/features/airspace/components/AirspacePolygon';
 import { multiPolygonToKakaoPaths } from '@/features/airspace/utils/multiPolygonToKakaoPaths';
 import { polygonCentroid } from '@/features/airspace/utils/polygonCentroid';
@@ -82,6 +83,7 @@ export const AirspacePolygonLayer = memo(
               config={config}
               path={item.path}
               isVisible={isVisible}
+              polygonZIndex={STACK_Z_INDEX_BY_LABEL[item.zoneType ?? ''] ?? config.zIndex}
               labelPosition={item.labelPosition}
               zoneNumberLabel={item.zoneNumberLabel}
               onPointClick={onPointClick}

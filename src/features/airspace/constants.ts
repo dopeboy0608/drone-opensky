@@ -69,6 +69,12 @@ export const LAYER_STACK_ORDER: readonly string[] = [
   'lt_c_aisdronezone',
 ];
 
+// 폴리곤 모드의 색 쌓임 zIndex(한글 라벨 기준, 바닥 1 → 위 12). 레벨(금지/제한/가능) zIndex로는 같은 레벨 안의 순서와
+// 위험구역처럼 레벨이 내려간 종류를 정할 수 없어서 종류별로 둔다(#113). polygon의 feature.zoneType이 라벨이라 라벨로 찾는다.
+export const STACK_Z_INDEX_BY_LABEL: Record<string, number> = Object.fromEntries(
+  LAYER_STACK_ORDER.map((typename, index) => [TYPENAME_ZONE_LABELS[typename], index + 1]),
+);
+
 // 클릭 조회 대상. 범례 필터(표시 여부)와 무관하게 전부 조회한다. 숨긴 구역 위를 클릭했을 때 "규제 없음"으로 보이면
 // 오해를 부르기 때문이다(#27). 순서는 우선순위(위험도 높은 순)다.
 export const ALL_ZONE_TYPENAMES: string[] = Object.keys(TYPENAME_ZONE_LABELS);

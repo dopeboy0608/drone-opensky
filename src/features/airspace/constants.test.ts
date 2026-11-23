@@ -6,6 +6,7 @@ import {
   ALL_ZONE_TYPENAMES,
   KOREA_BBOX,
   LAYER_STACK_ORDER,
+  STACK_Z_INDEX_BY_LABEL,
   TYPENAME_ZONE_LABELS,
   ZONE_LEVEL_BY_LABEL,
 } from '@/features/airspace/constants';
@@ -122,6 +123,26 @@ describe('airspace constants', () => {
     it('클릭 판정 순서(위험도 순)와는 다르다', () => {
       expect(ALL_ZONE_TYPENAMES[0]).toBe('lt_c_aisprhc');
       expect([...LAYER_STACK_ORDER].reverse()).not.toEqual(ALL_ZONE_TYPENAMES);
+    });
+  });
+
+  // 폴리곤 모드의 색 쌓임용 zIndex. 레벨(금지/제한/가능)별 zIndex로는 같은 레벨 안의 순서와 위험구역처럼 레벨이 내려간 종류를 못 정한다(#113).
+  describe('STACK_Z_INDEX_BY_LABEL (폴리곤 쌓임 zIndex)', () => {
+    it('쌓임 순서(바닥 → 위)대로 1부터 12까지 커진다', () => {
+      const zIndexes = LAYER_STACK_ORDER.map(
+        (typename) => STACK_Z_INDEX_BY_LABEL[TYPENAME_ZONE_LABELS[typename]],
+      );
+
+      expect(zIndexes).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    });
+
+    it('비행금지구역은 비행제한구역보다 아래, 위험구역은 비행제한구역보다 위다', () => {
+      expect(STACK_Z_INDEX_BY_LABEL['비행금지구역']).toBeLessThan(
+        STACK_Z_INDEX_BY_LABEL['비행제한구역'],
+      );
+      expect(STACK_Z_INDEX_BY_LABEL['위험구역']).toBeGreaterThan(
+        STACK_Z_INDEX_BY_LABEL['비행제한구역'],
+      );
     });
   });
 });

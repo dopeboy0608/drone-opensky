@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AirspaceWmsLayer } from '@/features/airspace/components/AirspaceWmsLayer';
 import { WMS_TILE_SIZE } from '@/features/airspace/utils/buildWmsTileUrl';
 
-import { TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
+import { LAYER_STACK_ORDER, TYPENAME_ZONE_LABELS } from '@/features/airspace/constants';
 import {
   createInitialVisibility,
   useAirspaceFilterStore,
@@ -57,10 +57,11 @@ describe('AirspaceWmsLayer', () => {
     expect(addedNames().sort()).toEqual(SLOT_NAMES);
   });
 
-  it('슬롯 0(비행금지 구역)이 가장 위에 오도록 마지막 슬롯부터 추가한다', () => {
+  // 슬롯 0이 바닥(경계구역·관제권·비행금지·비행장교통)이고 마지막 슬롯이 맨 위(드론시범사업 등)다. 나중에 추가한 오버레이가 위에 그려진다(#113).
+  it('쌓임 순서(바닥 → 위)대로 슬롯 0부터 추가한다', () => {
     render(<AirspaceWmsLayer />);
 
-    expect(addedNames()).toEqual([...SLOT_NAMES].reverse());
+    expect(addedNames()).toEqual(SLOT_NAMES);
   });
 
   it('요청마다 LAYERS는 4개 이하이고, 슬롯을 합치면 12종 전부를 한 번씩 요청한다', () => {
@@ -69,7 +70,10 @@ describe('AirspaceWmsLayer', () => {
     const perSlot = SLOT_NAMES.map(getLayers);
 
     expect(perSlot.every((layers) => layers.length > 0 && layers.length <= 4)).toBe(true);
-    expect(perSlot.flat()).toEqual(ALL_TYPENAMES);
+    // 슬롯을 이어 붙이면 쌓임 순서(바닥 → 위)와 같다. 슬롯 안 LAYERS 순서도 앞이 아래다(#113).
+    expect(perSlot.flat()).toEqual([...LAYER_STACK_ORDER]);
+    expect([...perSlot.flat()].sort()).toEqual([...ALL_TYPENAMES].sort());
+    expect(perSlot[0]).toEqual(['lt_c_aisaltc', 'lt_c_aisctrc', 'lt_c_aisprhc', 'lt_c_aisatzc']);
   });
 
   it('언마운트하면 추가했던 오버레이를 모두 제거한다', () => {

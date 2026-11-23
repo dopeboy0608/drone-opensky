@@ -25,15 +25,13 @@ export const AirspaceWmsLayer = () => {
     const visibleTypenames = visibleTypenamesKey === '' ? [] : visibleTypenamesKey.split(',');
     const usedSlotCount = chunkTypenames(visibleTypenames, MAX_LAYERS_PER_REQUEST).length;
 
-    // 카카오 오버레이는 나중에 추가한 것이 위에 그려진다. 앞 슬롯이 비행금지 등 위험도가 높은 구역이라
-    // 마지막 슬롯부터 추가해 앞 슬롯이 위로 오게 한다.
-    const attachedMapTypeIds = SLOT_INDEXES.slice(0, usedSlotCount)
-      .reverse()
-      .flatMap((slot) => {
-        registerWmsTileset(slot);
-        const mapTypeId = getRegisteredMapTypeId(slot);
-        return mapTypeId ? [mapTypeId] : [];
-      });
+    // 카카오 오버레이는 나중에 추가한 것이 위에 그려진다. 슬롯은 쌓임 순서(바닥 → 위)로 채워지므로
+    // 슬롯 0부터 추가하면 국토부 원스톱과 같은 순서로 쌓인다(#113). 클릭 판정 우선순위와는 별개다.
+    const attachedMapTypeIds = SLOT_INDEXES.slice(0, usedSlotCount).flatMap((slot) => {
+      registerWmsTileset(slot);
+      const mapTypeId = getRegisteredMapTypeId(slot);
+      return mapTypeId ? [mapTypeId] : [];
+    });
 
     // 필터가 바뀌면 이 이펙트가 다시 돌아 오버레이를 뗐다 붙인다. 카카오 Tileset에는 타일 갱신 API가 없고,
     // 오버레이를 다시 붙여야 urlFunc가 새 LAYERS로 다시 호출된다.
