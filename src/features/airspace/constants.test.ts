@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   AIRSPACE_ZONE_CONFIGS,
   AIRSPACE_ZONE_LABELS,
+  ALL_ZONE_TYPENAMES,
   KOREA_BBOX,
+  LAYER_STACK_ORDER,
   TYPENAME_ZONE_LABELS,
   ZONE_LEVEL_BY_LABEL,
 } from '@/features/airspace/constants';
@@ -85,5 +87,41 @@ describe('airspace constants', () => {
     const fromConfigs = AIRSPACE_ZONE_CONFIGS.flatMap((config) => config.typenames);
 
     expect(fromConfigs).toEqual(Object.keys(TYPENAME_ZONE_LABELS));
+  });
+
+  // 색 쌓임(국토부 순서)과 클릭 판정(위험도 순)은 의미가 달라 따로 둔다(#112). 한쪽을 바꿀 때 다른 쪽이 따라 바뀌지 않아야 한다.
+  describe('LAYER_STACK_ORDER (국토부 쌓임 순서, 바닥 → 위)', () => {
+    it('12종 typename을 한 번씩만 모두 포함한다', () => {
+      expect([...LAYER_STACK_ORDER].sort()).toEqual([...ALL_ZONE_TYPENAMES].sort());
+    });
+
+    it('원스톱 순서를 따른다', () => {
+      expect(LAYER_STACK_ORDER).toEqual([
+        'lt_c_aisaltc',
+        'lt_c_aisctrc',
+        'lt_c_aisprhc',
+        'lt_c_aisatzc',
+        'lt_c_aisresc',
+        'lt_c_aismoac',
+        'lt_c_aisuac',
+        'lt_c_aisfldc',
+        'lt_c_aisdngc',
+        'lt_c_aistemp',
+        'lt_c_wgisnpgug',
+        'lt_c_aisdronezone',
+      ]);
+    });
+
+    it('비행금지는 비행제한·UA보다 아래에 깔린다(원스톱과 같은 동작)', () => {
+      const rank = (typename: string) => LAYER_STACK_ORDER.indexOf(typename);
+
+      expect(rank('lt_c_aisprhc')).toBeLessThan(rank('lt_c_aisresc'));
+      expect(rank('lt_c_aisprhc')).toBeLessThan(rank('lt_c_aisuac'));
+    });
+
+    it('클릭 판정 순서(위험도 순)와는 다르다', () => {
+      expect(ALL_ZONE_TYPENAMES[0]).toBe('lt_c_aisprhc');
+      expect([...LAYER_STACK_ORDER].reverse()).not.toEqual(ALL_ZONE_TYPENAMES);
+    });
   });
 });
