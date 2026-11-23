@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AirspacePolygonLayer } from '@/features/airspace/components/AirspacePolygonLayer';
 
-import { AIRSPACE_ZONE_CONFIGS } from '@/features/airspace/constants';
+import { AIRSPACE_ZONE_CONFIGS, STACK_Z_INDEX_BY_LABEL } from '@/features/airspace/constants';
 import type { VWorldFeature, VWorldFeatureCollection } from '@/features/airspace/types';
 import { installKakaoMapsMock, uninstallKakaoMapsMock } from '@/test/mocks/kakaoMaps';
 
@@ -21,9 +21,11 @@ vi.mock('react-kakao-maps-sdk', () => ({
     onClick,
     fillColor,
     path,
+    zIndex,
     ref,
   }: {
     path: unknown;
+    zIndex: number;
     ref?: Ref<unknown>;
     onClick: (
       target: unknown,
@@ -42,6 +44,7 @@ vi.mock('react-kakao-maps-sdk', () => ({
       <button
         type="button"
         data-testid="polygon"
+        data-zindex={zIndex}
         onClick={() => onClick(undefined, { latLng: { getLat: () => 37, getLng: () => 127 } })}
       >
         {fillColor}
@@ -116,6 +119,37 @@ describe('AirspacePolygonLayer 토글 필터', () => {
     expect(polygonSetMapCalls[1][polygonSetMapCalls[1].length - 1]).toBeNull();
     expect(screen.getByText('R1')).toBeInTheDocument();
     expect(screen.queryByText('R2')).not.toBeInTheDocument();
+  });
+
+  // 폴리곤 쌓임은 레벨이 아니라 종류별(국토부 순서)이다. 위험구역은 레벨이 제한이어도 비행제한구역보다 위에 그려진다(#113).
+  it('폴리곤 zIndex는 구역 종류의 쌓임 순서를 따른다', () => {
+    render(
+      <AirspacePolygonLayer
+        config={config}
+        data={makeData(makeFeature('비행제한구역'), makeFeature('위험구역'))}
+        onPointClick={vi.fn()}
+      />,
+    );
+
+    const [restricted, danger] = screen
+      .getAllByTestId('polygon')
+      .map((polygon) => Number(polygon.getAttribute('data-zindex')));
+
+    expect(restricted).toBe(STACK_Z_INDEX_BY_LABEL['비행제한구역']);
+    expect(danger).toBe(STACK_Z_INDEX_BY_LABEL['위험구역']);
+    expect(danger).toBeGreaterThan(restricted);
+  });
+
+  it('알 수 없는 구역 종류는 레벨 zIndex로 대신한다', () => {
+    render(
+      <AirspacePolygonLayer
+        config={config}
+        data={makeData(makeFeature('알 수 없음'))}
+        onPointClick={vi.fn()}
+      />,
+    );
+
+    expect(Number(screen.getByTestId('polygon').getAttribute('data-zindex'))).toBe(config.zIndex);
   });
 
   it('빈 집합이면 모든 폴리곤을 지도에서 뗀다', () => {

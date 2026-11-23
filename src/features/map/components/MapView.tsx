@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Map as KakaoMap, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk';
 
 import { AirspaceFilterPanel } from '@/features/airspace/components/AirspaceFilterPanel';
-import { AirspaceClickPending } from '@/features/airspace/components/AirspaceClickPending';
 import { AirspaceCacheMenu } from '@/features/airspace/components/AirspaceCacheMenu';
 import { AirspaceRenderModeMenu } from '@/features/airspace/components/AirspaceRenderModeMenu';
 import { AirspaceLegend } from '@/features/airspace/components/AirspaceLegend';
@@ -53,14 +52,8 @@ export const MapView = () => {
     enabled: renderMode === 'polygon',
   });
 
-  const {
-    visibleZoneTypes,
-    selectedZone,
-    isSelectedZoneHidden,
-    clearZone,
-    handlePointClick,
-    pendingPosition,
-  } = useAirspaceMapInteraction({ renderMode, visibility: airspaceVisibility });
+  const { visibleZoneTypes, selectedZone, isSelectedZoneHidden, clearZone, handlePointClick } =
+    useAirspaceMapInteraction({ renderMode, visibility: airspaceVisibility });
 
   const selectedAddress = useAddressAtPosition(selectedZone?.position ?? null);
 
@@ -157,10 +150,10 @@ export const MapView = () => {
             address={selectedAddress}
             isHidden={isSelectedZoneHidden}
             overlap={selectedZone.overlap}
+            isPending={selectedZone.isPending}
             onClose={clearZone}
           />
         )}
-        {pendingPosition && <AirspaceClickPending position={pendingPosition} />}
         {markerPosition && <MapMarker position={markerPosition} />}
       </KakaoMap>
       <AddressSearch onSelectCandidate={handleSelectCandidate} />

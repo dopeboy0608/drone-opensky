@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { useSelectedZone } from '@/features/airspace/hooks/useSelectedZone';
 import { useZoneClick } from '@/features/airspace/hooks/useZoneClick';
 import type { AirspaceRenderMode } from '@/features/airspace/store/airspaceRenderModeStore';
+import type { SelectedZone } from '@/features/airspace/types';
 import { getVisibleZoneTypes } from '@/features/airspace/utils/getVisibleZoneTypes';
 
 import { ALL_ZONE_TYPENAMES } from '@/features/airspace/constants';
@@ -26,19 +27,43 @@ export const useAirspaceMapInteraction = ({
   // 피하기 위함이다(#47).
   const visibleZoneTypes = renderMode === 'wms' ? NO_VISIBLE_ZONE_TYPES : filteredZoneTypes;
 
-  const { selectedZone, selectZone, clearZone } = useSelectedZone();
+  const {
+    selectedZone: resolvedZone,
+    selectZone,
+    clearZone: clearResolvedZone,
+  } = useSelectedZone();
   // 두 모드 모두 같은 좌표 조회로 안내한다. 조회 대상은 범례 필터와 무관하게 전체다(#27).
-  const { onMapClick: handlePointClick, pendingPosition } = useZoneClick({
+  const {
+    onMapClick: handlePointClick,
+    pendingPosition,
+    cancelPending,
+  } = useZoneClick({
     enabled: true,
     resetKey: renderMode,
     typenames: ALL_ZONE_TYPENAMES,
     selectZone,
-    clearZone,
+    clearZone: clearResolvedZone,
   });
+
+  // 닫기는 확정된 카드뿐 아니라 조회 중인 대기 카드도 닫아야 하고, 이때 진행 중인 조회도 끊는다.
+  const clearZone = useCallback(() => {
+    cancelPending();
+    clearResolvedZone();
+  }, [cancelPending, clearResolvedZone]);
+
+  // 조회가 끝나기 전에도 클릭 지점에 카드를 바로 연다. 구역은 아직 모르므로 대기 카드(isPending)로 두고,
+  // 확정되면 resolvedZone이 이를 대신한다(#114). 새 클릭이 오면 이전 카드보다 새 위치의 대기 카드를 우선한다.
+  const selectedZone = useMemo<SelectedZone | null>(
+    () =>
+      pendingPosition
+        ? { position: pendingPosition, zoneType: null, isPending: true }
+        : resolvedZone,
+    [pendingPosition, resolvedZone],
+  );
 
   // 범례에서 꺼서 지도에 보이지 않는 구역이면 카드에 그 사실을 알린다.
   const isSelectedZoneHidden =
-    selectedZone?.zoneType != null && !filteredZoneTypes.has(selectedZone.zoneType);
+    resolvedZone?.zoneType != null && !filteredZoneTypes.has(resolvedZone.zoneType);
 
   // 모드를 바꾸면 이전 모드에서 열린 안내는 의미가 없어 닫는다(예전에는 빈 Set 전달로 닫혔다).
   // renderMode는 값이 아니라 "바뀐 시점"을 알리는 트리거로만 쓴다.
@@ -53,6 +78,5 @@ export const useAirspaceMapInteraction = ({
     isSelectedZoneHidden,
     clearZone,
     handlePointClick,
-    pendingPosition,
   };
 };

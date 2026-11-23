@@ -7,6 +7,8 @@ interface AirspacePolygonProps {
   config: AirspaceZoneConfig;
   path: { lat: number; lng: number }[][];
   isVisible: boolean;
+  // 폴리곤의 쌓임 순서. 구역 종류별(국토부 순서)이라 레벨 zIndex(config.zIndex)와 따로 받는다.
+  polygonZIndex: number;
   labelPosition: { lat: number; lng: number };
   zoneNumberLabel: string | undefined;
   onPointClick: (point: { lat: number; lng: number }) => void;
@@ -19,6 +21,7 @@ export const AirspacePolygon = memo(
     config,
     path,
     isVisible,
+    polygonZIndex,
     labelPosition,
     zoneNumberLabel,
     onPointClick,
@@ -51,7 +54,7 @@ export const AirspacePolygon = memo(
           strokeOpacity={0.8}
           fillColor={config.color}
           fillOpacity={config.fillOpacity}
-          zIndex={config.zIndex}
+          zIndex={polygonZIndex}
           onClick={handleClick}
         />
         {isVisible && zoneNumberLabel && (

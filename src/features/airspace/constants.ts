@@ -50,6 +50,31 @@ export const ZONE_LEVEL_BY_LABEL: Record<string, AirspaceZoneLevel> = Object.fro
   ZONE_TYPES.map((zone) => [zone.label, zone.level]),
 );
 
+// 색 쌓임 순서(바닥 → 위). 국토부 원스톱이 레이어를 그리는 순서(`vmap.getLayers()`, 2026-11-23 확인)에서 우리 12종의 상대 순서만 뽑았다.
+// 위의 ZONE_TYPES 순서(클릭 겹침 판정: 위험도 순, 비행금지 최상위)와 의미가 달라 일부러 따로 둔다. 원스톱에서는 비행금지가
+// 비행제한·UA보다 아래에 깔리지만, 판정에서는 비행금지가 여전히 최우선이어야 하기 때문이다(#110, #112).
+// 군작전구역(lt_c_aismoac)은 원스톱 레이어 목록에 없어 위치를 알 수 없다. 비행제한구역 바로 위에 임시로 두며 확인이 필요하다.
+export const LAYER_STACK_ORDER: readonly string[] = [
+  'lt_c_aisaltc',
+  'lt_c_aisctrc',
+  'lt_c_aisprhc',
+  'lt_c_aisatzc',
+  'lt_c_aisresc',
+  'lt_c_aismoac',
+  'lt_c_aisuac',
+  'lt_c_aisfldc',
+  'lt_c_aisdngc',
+  'lt_c_aistemp',
+  'lt_c_wgisnpgug',
+  'lt_c_aisdronezone',
+];
+
+// 폴리곤 모드의 색 쌓임 zIndex(한글 라벨 기준, 바닥 1 → 위 12). 레벨(금지/제한/가능) zIndex로는 같은 레벨 안의 순서와
+// 위험구역처럼 레벨이 내려간 종류를 정할 수 없어서 종류별로 둔다(#113). polygon의 feature.zoneType이 라벨이라 라벨로 찾는다.
+export const STACK_Z_INDEX_BY_LABEL: Record<string, number> = Object.fromEntries(
+  LAYER_STACK_ORDER.map((typename, index) => [TYPENAME_ZONE_LABELS[typename], index + 1]),
+);
+
 // 클릭 조회 대상. 범례 필터(표시 여부)와 무관하게 전부 조회한다. 숨긴 구역 위를 클릭했을 때 "규제 없음"으로 보이면
 // 오해를 부르기 때문이다(#27). 순서는 우선순위(위험도 높은 순)다.
 export const ALL_ZONE_TYPENAMES: string[] = Object.keys(TYPENAME_ZONE_LABELS);

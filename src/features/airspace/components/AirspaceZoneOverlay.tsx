@@ -2,6 +2,7 @@ import { CloseOutlined } from '@ant-design/icons';
 import { Button, Card, ConfigProvider, theme } from 'antd';
 import { CustomOverlayMap } from 'react-kakao-maps-sdk';
 
+import { ZoneSkeletonBar } from '@/features/airspace/components/ZoneSkeletonBar';
 import { ZoneGuidanceBody } from '@/features/airspace/components/ZoneGuidanceBody';
 import {
   formatZoneAddressFull,
@@ -18,6 +19,8 @@ interface AirspaceZoneOverlayProps {
   // 범례에서 꺼서 지도에 보이지 않는 구역이면 true.
   isHidden?: boolean;
   overlap?: SelectedZone['overlap'];
+  // 구역 조회가 끝나기 전의 대기 카드(#114).
+  isPending?: boolean;
   onClose: () => void;
 }
 
@@ -30,6 +33,7 @@ export const AirspaceZoneOverlay = ({
   address = { status: 'idle' },
   isHidden = false,
   overlap,
+  isPending = false,
   onClose,
 }: AirspaceZoneOverlayProps) => {
   const { token } = theme.useToken();
@@ -55,9 +59,14 @@ export const AirspaceZoneOverlay = ({
             size="small"
             title={
               // 제목은 시·도·시군구를 뺀 상세 주소지만 그래도 길면 말줄임하고, 전체 주소는 title 속성과 카드 아래 줄로 보인다. min-w-0은 flex 자식이 내용 폭만큼 늘어나 말줄임이 안 되는 것을 막는다.
-              <span className="block min-w-0 truncate" title={fullAddress ?? addressTitle}>
-                {addressTitle}
-              </span>
+              // 주소 조회 중에는 "조회 중" 문구 대신 스켈레톤으로 자리를 잡는다(#114). 제목 높이는 텍스트 한 줄(약 22px)에 맞춘다.
+              address.status === 'loading' ? (
+                <ZoneSkeletonBar className="my-1 h-4 w-32" label="주소 조회 중" />
+              ) : (
+                <span className="block min-w-0 truncate" title={fullAddress ?? addressTitle}>
+                  {addressTitle}
+                </span>
+              )
             }
             extra={
               // filled 기본 배경(colorFillTertiary, 약 4%)이 지도 위에서 거의 안 보여 한 단계씩 진하게 올린다.
@@ -95,6 +104,7 @@ export const AirspaceZoneOverlay = ({
               address={address}
               isHidden={isHidden}
               overlap={overlap}
+              isPending={isPending}
             />
           </Card>
           {/* 테두리 삼각형으로 그려 끝점이 래퍼 바닥(클릭 좌표)에 정확히 놓이게 한다. 회전한 정사각형은 꼭짓점이 어긋난다.

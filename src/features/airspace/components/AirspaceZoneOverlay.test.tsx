@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AirspaceZoneOverlay } from '@/features/airspace/components/AirspaceZoneOverlay';
 
+import type { AddressState } from '@/types/address';
+
 const captured = vi.hoisted(() => ({ props: undefined as Record<string, unknown> | undefined }));
 
 vi.mock('react-kakao-maps-sdk', () => ({
@@ -122,9 +124,11 @@ describe('AirspaceZoneOverlay 앵커', () => {
       expect(screen.getByText('(서울 중구 태평로1가 31)')).toBeDefined();
     });
 
-    it('주소 조회 중과 실패 상태를 구역 안내와 함께 보여 준다', () => {
+    // 이슈 #114: "주소 조회 중…" 문구 대신 스켈레톤으로 자리를 잡는다.
+    it('주소 조회 중에는 문구 대신 스켈레톤을 보여 주고, 실패하면 오류 문구를 보여 준다', () => {
       const { rerender } = renderOverlay('관제권', { status: 'loading' });
-      expect(screen.getByText('주소 조회 중…')).toBeDefined();
+      expect(screen.queryByText('주소 조회 중…')).toBeNull();
+      expect(screen.getAllByLabelText('주소 조회 중').length).toBeGreaterThan(0);
 
       rerender(
         <AirspaceZoneOverlay
@@ -137,6 +141,49 @@ describe('AirspaceZoneOverlay 앵커', () => {
 
       expect(screen.getByText('주소를 불러오지 못했습니다.')).toBeDefined();
       expect(screen.getByText('비행 제한 구역')).toBeDefined();
+    });
+
+    describe('구역 조회 중 (대기 카드, #114)', () => {
+      const renderPending = (address?: AddressState) =>
+        render(
+          <AirspaceZoneOverlay
+            position={{ lat: 37, lng: 127 }}
+            zoneType={null}
+            isPending
+            address={address}
+            onClose={vi.fn()}
+          />,
+        );
+
+      it('구역 종류와 안내 문구 대신 스켈레톤과 조회 중 상태를 보여 준다', () => {
+        renderPending({ status: 'loading' });
+
+        expect(screen.getByRole('status', { name: '구역 조회 중' })).toBeDefined();
+        expect(screen.queryByText('조회된 규제 구역 없음')).toBeNull();
+        expect(screen.queryByText(/공식 확인/)).toBeNull();
+      });
+
+      it('주소가 이미 도착했다면 주소는 바로 보여 준다', () => {
+        renderPending({
+          status: 'success',
+          address: { primary: '서울 중구 세종대로 110', secondary: '서울 중구 태평로1가 31' },
+        });
+
+        expect(screen.getByText('세종대로 110')).toBeDefined();
+        expect(screen.getByText('서울 중구 세종대로 110')).toBeDefined();
+      });
+
+      it('닫기 버튼은 대기 중에도 쓸 수 있다', () => {
+        renderPending({ status: 'loading' });
+
+        expect(screen.getByLabelText('닫기')).toBeDefined();
+      });
+
+      it('조회가 끝나면 조회 중 상태가 사라진다', () => {
+        renderOverlay('관제권');
+
+        expect(screen.queryByRole('status', { name: '구역 조회 중' })).toBeNull();
+      });
     });
 
     it('범례에서 숨긴 구역이면 그 사실을 카드에 알린다', () => {
