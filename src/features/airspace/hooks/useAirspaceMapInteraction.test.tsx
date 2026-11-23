@@ -169,6 +169,85 @@ describe('useAirspaceMapInteraction', () => {
     await act(() => click);
 
     expect(result.current.selectedZone).toBeNull();
-    expect(result.current.pendingPosition).toBeNull();
+  });
+
+  // 이슈 #114: 조회가 끝나기 전에도 클릭 지점에 대기 카드를 즉시 열고, 확정되면 구역 카드로 바꾼다.
+  it('클릭하면 응답 전에 대기 카드를 열고, 확정되면 구역 카드로 바꾼다', async () => {
+    const square = [
+      [
+        [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+          [0, 0],
+        ],
+      ],
+    ];
+    server.use(
+      http.get(WFS_URL, async () => {
+        await delay(60);
+        return HttpResponse.json({
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'MultiPolygon', coordinates: square },
+            },
+          ],
+        });
+      }),
+    );
+    const { result } = setup('wms');
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.handlePointClick({ lat: 5, lng: 5 });
+    });
+
+    expect(result.current.selectedZone).toMatchObject({
+      position: { lat: 5, lng: 5 },
+      zoneType: null,
+      isPending: true,
+    });
+
+    await act(() => click);
+
+    expect(result.current.selectedZone?.isPending).toBeFalsy();
+    expect(result.current.selectedZone?.zoneType).not.toBeNull();
+  });
+
+  it('대기 카드를 닫으면 조회를 끊고 카드가 다시 열리지 않는다', async () => {
+    server.use(
+      http.get(WFS_URL, async () => {
+        await delay(60);
+        return HttpResponse.json({ type: 'FeatureCollection', features: [] });
+      }),
+    );
+    const { result } = setup('wms');
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.handlePointClick({ lat: 5, lng: 5 });
+    });
+    expect(result.current.selectedZone?.isPending).toBe(true);
+
+    act(() => result.current.clearZone());
+    await act(() => click);
+
+    expect(result.current.selectedZone).toBeNull();
+  });
+
+  it('조회가 실패하면 대기 카드를 닫는다', async () => {
+    server.use(http.get(WFS_URL, () => HttpResponse.error()));
+    const { result } = setup('wms');
+    let click: Promise<void> = Promise.resolve();
+    act(() => {
+      click = result.current.handlePointClick({ lat: 5, lng: 5 });
+    });
+    expect(result.current.selectedZone?.isPending).toBe(true);
+
+    await act(() => click);
+
+    expect(result.current.selectedZone).toBeNull();
   });
 });

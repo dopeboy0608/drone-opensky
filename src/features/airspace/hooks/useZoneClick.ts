@@ -135,5 +135,11 @@ export const useZoneClick = ({
     setPendingPosition(null);
   }, [resetKey, cancelLatestRequest]);
 
-  return { onMapClick, pendingPosition };
+  // 조회 중인 카드를 사용자가 닫을 때 쓴다. 조회를 끊지 않으면 뒤늦게 도착한 결과가 닫은 카드를 다시 연다.
+  const cancelPending = useCallback(() => {
+    cancelLatestRequest();
+    setPendingPosition(null);
+  }, [cancelLatestRequest]);
+
+  return { onMapClick, pendingPosition, cancelPending };
 };
